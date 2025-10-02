@@ -55,6 +55,8 @@ class Andw_Settings {
         }
 
         if ( $settings['temp_logging_expiration'] && $this->is_temp_logging_expired( (int) $settings['temp_logging_expiration'] ) ) {
+            // 期限切れ時の処理
+            $this->handle_temp_logging_expiration();
             $settings['temp_logging_enabled'] = false;
             $settings['temp_logging_expiration'] = 0;
             update_option( self::OPTION_NAME, $settings, false );
@@ -253,6 +255,59 @@ class Andw_Settings {
             ini_set( 'log_errors', '1' );
             ini_set( 'error_log', WP_CONTENT_DIR . '/debug.log' );
             error_reporting( E_ALL );
+        }
+    }
+
+    /**
+     * Handle temporary logging expiration.
+     *
+     * @return void
+     */
+    private function handle_temp_logging_expiration() {
+        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        error_log( 'andW Debug Viewer: Temporary logging expired' );
+
+        // WP_DEBUG が false の場合のみログをクリア
+        if ( ! $wp_debug_enabled || ! $wp_debug_log_enabled ) {
+            $log_file = WP_CONTENT_DIR . '/debug.log';
+
+            if ( file_exists( $log_file ) ) {
+                // ログファイルのサイズを確認
+                $file_size = filesize( $log_file );
+
+                // 一時ログ用のマーカーが含まれているかチェック
+                $content = file_get_contents( $log_file );
+                $has_temp_logs = strpos( $content, 'andW Debug Viewer:' ) !== false;
+
+                if ( $has_temp_logs ) {
+                    // andW Debug Viewer のログエントリのみを削除
+                    $lines = explode( "\n", $content );
+                    $filtered_lines = array();
+
+                    foreach ( $lines as $line ) {
+                        // andW Debug Viewer 以外のログエントリは保持
+                        if ( strpos( $line, 'andW Debug Viewer:' ) === false && ! empty( trim( $line ) ) ) {
+                            $filtered_lines[] = $line;
+                        }
+                    }
+
+                    if ( empty( $filtered_lines ) ) {
+                        // andW のログのみだった場合はファイルを削除
+                        unlink( $log_file );
+                        error_log( 'andW Debug Viewer: Cleaned up temporary log file (deleted)' );
+                    } else {
+                        // 他のログがある場合は andW のエントリのみ削除
+                        file_put_contents( $log_file, implode( "\n", $filtered_lines ) . "\n" );
+                        error_log( 'andW Debug Viewer: Cleaned up temporary log entries (filtered)' );
+                    }
+                } else {
+                    error_log( 'andW Debug Viewer: No temporary logs found, leaving file intact' );
+                }
+            }
+        } else {
+            error_log( 'andW Debug Viewer: WP_DEBUG is enabled, leaving logs intact' );
         }
     }
 

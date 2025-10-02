@@ -30,6 +30,7 @@ class Andw_Admin {
         add_action( 'admin_post_andw_toggle_prod_override', array( $this, 'handle_toggle_production_override' ) );
         add_action( 'admin_post_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
         add_action( 'admin_post_andw_test_log_output', array( $this, 'handle_test_log_output' ) );
+        add_action( 'admin_post_andw_test_expiration', array( $this, 'handle_test_expiration' ) );
 
         // 汎用的なadmin-post.phpデバッグ
         add_action( 'admin_post_nopriv_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
@@ -593,11 +594,20 @@ class Andw_Admin {
             echo '</p>';
         }
 
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;">';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block; margin-right:10px;">';
         wp_nonce_field( 'andw_test_log_output' );
         echo '<input type="hidden" name="action" value="andw_test_log_output">';
         submit_button( __( '🧪 テスト用ログ出力', 'andw-debug-viewer' ), 'secondary', 'submit', false );
         echo '</form>';
+
+        // デバッグ用: 期限切れ処理のテスト
+        if ( ! $actual_logging_works || $temp_logging_active ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;">';
+            wp_nonce_field( 'andw_test_expiration' );
+            echo '<input type="hidden" name="action" value="andw_test_expiration">';
+            submit_button( __( '🔬 期限切れ処理テスト', 'andw-debug-viewer' ), 'secondary', 'submit', false );
+            echo '</form>';
+        }
 
         echo '</div>';
         echo '</div>';
@@ -662,6 +672,7 @@ class Andw_Admin {
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
             'temp_logging_error'   => __( 'ログ出力設定の変更に失敗しました。', 'andw-debug-viewer' ),
             'test_log_success'     => __( 'テスト用ログメッセージを出力しました。ログビューアーで確認してください。', 'andw-debug-viewer' ),
+            'expiration_test_complete' => __( '期限切れ処理テストを実行しました。ログビューアーで結果を確認してください。', 'andw-debug-viewer' ),
         );
 
         $message_key = $override_message ?: $temp_logging_message ?: $legacy_message;
@@ -924,5 +935,47 @@ class Andw_Admin {
         }
 
         wp_die( json_encode( array( 'success' => $success, 'message' => $message ) ) );
+    }
+
+    /**
+     * Handle test expiration.
+     *
+     * @return void
+     */
+    public function handle_test_expiration() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
+        }
+
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'andw_test_expiration' ) ) {
+            wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
+        }
+
+        // 期限切れ処理を手動実行
+        $settings_handler = $this->plugin->get_settings_handler();
+        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        error_log( 'andW Debug Viewer: Manual expiration test triggered' );
+        error_log( 'andW Debug Viewer: WP_DEBUG=' . ( $wp_debug_enabled ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: WP_DEBUG_LOG=' . ( $wp_debug_log_enabled ? 'true' : 'false' ) );
+
+        // 期限切れ処理をテスト実行
+        $reflection = new ReflectionClass( $settings_handler );
+        $method = $reflection->getMethod( 'handle_temp_logging_expiration' );
+        $method->setAccessible( true );
+        $method->invoke( $settings_handler );
+
+        $redirect_url = add_query_arg(
+            array(
+                'page' => 'andw-debug-viewer',
+                'tab'  => 'settings',
+                'temp_logging_message' => 'expiration_test_complete',
+            ),
+            admin_url( 'admin.php' )
+        );
+
+        wp_safe_redirect( $redirect_url );
+        exit;
     }
 }
