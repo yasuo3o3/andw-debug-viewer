@@ -1,0 +1,20 @@
+# .github/workflows/deploy.yml
+name: Deploy to WordPress.org
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'   # 数値タグだけで起動（plugin/... は起動させない）
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: WordPress Plugin Deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          # SLUG: selective-recaptcha-loader  # GitHub名とwp.orgスラッグが異なる場合のみ指定

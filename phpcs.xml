@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="andW Debug Viewer">
+    <description>WordPress Coding Standards for andW Debug Viewer plugin.</description>
+    <rule ref="WordPress" />
+    <rule ref="WordPress-Extra" />
+
+    <config name="testVersion" value="6.6-" />
+
+    <exclude-pattern>vendor/*</exclude-pattern>
+    <exclude-pattern>node_modules/*</exclude-pattern>
+    <exclude-pattern>assets/js/*min.js</exclude-pattern>
+
+    <file>andw-debug-viewer.php</file>
+    <file>includes</file>
+    <file>assets</file>
+</ruleset>

@@ -1,0 +1,119 @@
+.andw-wrap {
+    max-width: 1000px;
+}
+
+.andw-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.andw-environment {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.andw-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-transform: uppercase;
+    background-color: #007cba;
+    color: #fff;
+}
+
+.andw-env-production {
+    background-color: #d63638;
+}
+
+.andw-env-staging {
+    background-color: #ffb900;
+}
+
+.andw-env-development,
+.andw-env-local {
+    background-color: #008a20;
+}
+
+.andw-mode-controls fieldset {
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 0;
+}
+
+.andw-mode-controls label {
+    margin-right: 8px;
+}
+
+.andw-actions .button {
+    margin-right: 6px;
+}
+
+.andw-log {
+    width: 100%;
+    min-height: 320px;
+    font-family: Consolas, Monaco, monospace;
+    background-color: #121212 !important;
+    color: #f5f5f5;
+    padding: 12px;
+}
+
+.andw-status {
+    margin-bottom: 8px;
+    min-height: 20px;
+}
+
+.andw-footer {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.andw-card {
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+    padding: 16px;
+    margin-top: 20px;
+    background-color: #fff;
+}
+
+.andw-card form {
+    margin-top: 12px;
+}
+
+.andw-control-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.andw-status-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    background-color: #e7f7e7;
+    border: 1px solid #4ab866;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.andw-status-active {
+    font-weight: 600;
+    color: #2d5d31;
+}
+
+.andw-countdown {
+    font-family: monospace;
+    color: #2d5d31;
+    font-weight: 500;
+}
