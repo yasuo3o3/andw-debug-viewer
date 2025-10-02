@@ -197,10 +197,18 @@ class Andw_Settings {
 
         error_log( 'andW Debug Viewer: New settings to save: ' . print_r( $settings, true ) );
 
+        // 既存設定を確認
+        $existing_settings = get_option( self::OPTION_NAME, array() );
+        error_log( 'andW Debug Viewer: Existing settings: ' . print_r( $existing_settings, true ) );
+
         // まず update_option を試行
         $updated = update_option( self::OPTION_NAME, $settings, false );
 
         error_log( 'andW Debug Viewer: update_option returned: ' . ( $updated ? 'true' : 'false' ) );
+
+        // 保存後の設定を確認
+        $after_save = get_option( self::OPTION_NAME, array() );
+        error_log( 'andW Debug Viewer: After save settings: ' . print_r( $after_save, true ) );
 
         // update_option が false を返した場合でも、値が変わっていない場合は true とみなす場合がある
         if ( ! $updated ) {
@@ -312,6 +320,10 @@ class Andw_Settings {
 
             // この行以降は新しいログファイルに出力されるはず
             error_log( 'andW Debug Viewer: テスト - この行は debug-temp.log に出力されるはずです' );
+
+            // 直接ファイルにも書き込んでテスト
+            $direct_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: 直接書き込みテスト - この行は確実に debug-temp.log に出力されます';
+            file_put_contents( $temp_log_path, $direct_message . PHP_EOL, FILE_APPEND | LOCK_EX );
         }
     }
 
