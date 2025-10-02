@@ -183,6 +183,13 @@ class Andw_Plugin {
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $allow_mutation  = ! $is_production || $override_active;
 
+        // デバッグ出力
+        error_log( 'andW Debug Viewer: get_permissions() - environment: ' . $environment );
+        error_log( 'andW Debug Viewer: get_permissions() - is_production: ' . ( $is_production ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - override_active: ' . ( $override_active ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - allow_mutation: ' . ( $allow_mutation ? 'true' : 'false' ) );
+
         $can_clear    = $allow_mutation;
         $can_download = $allow_mutation && ! empty( $settings['enable_download'] );
 
@@ -213,6 +220,11 @@ class Andw_Plugin {
                 $reasons['download'] = __( 'ネットワーク管理者のみがログをダウンロードできます。', 'andw-debug-viewer' );
             }
         }
+
+        // 最終権限結果をログ出力
+        error_log( 'andW Debug Viewer: get_permissions() - can_clear: ' . ( $can_clear ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - can_download: ' . ( $can_download ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - reasons: ' . print_r( $reasons, true ) );
 
         return array(
             'environment'                => $environment,
