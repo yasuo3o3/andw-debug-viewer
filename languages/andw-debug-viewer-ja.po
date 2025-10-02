@@ -1,0 +1,262 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: andW Debug Viewer 0.01\n"
+"POT-Creation-Date: 2024-10-02 00:00+0000\n"
+"PO-Revision-Date: 2024-10-02 00:00+0000\n"
+"Last-Translator: Netservice <plugins-dev@netservice.jp>\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Manual\n"
+
+msgid "andW Debug Viewer"
+msgstr "andW Debug Viewer"
+
+msgid "表示モード（行数または分数）。"
+msgstr "表示モード（行数または分数）。"
+
+msgid "モードに応じた行数または分数。"
+msgstr "モードに応じた行数または分数。"
+
+msgid "この環境ではログのクリアが許可されていません。"
+msgstr "この環境ではログのクリアが許可されていません。"
+
+msgid "この環境ではダウンロードが許可されていません。"
+msgstr "この環境ではダウンロードが許可されていません。"
+
+msgid "ログ出力設定の変更に失敗しました。"
+msgstr "ログ出力設定の変更に失敗しました。"
+
+msgid "一時ログ出力を有効にしました（15分間）。"
+msgstr "一時ログ出力を有効にしました（15分間）。"
+
+msgid "一時ログ出力を無効にしました。"
+msgstr "一時ログ出力を無効にしました。"
+
+msgid "ビューアー設定"
+msgstr "ビューアー設定"
+
+msgid "既定の表示行数"
+msgstr "既定の表示行数"
+
+msgid "ログ初期表示で読み込む行数（最大1000行）。"
+msgstr "ログ初期表示で読み込む行数（最大1000行）。"
+
+msgid "既定の表示分数"
+msgstr "既定の表示分数"
+
+msgid "「直近M分」モードで表示する既定の分数。"
+msgstr "「直近M分」モードで表示する既定の分数。"
+
+msgid "最大読み込み行数"
+msgstr "最大読み込み行数"
+
+msgid "1回の読み込みで取得する最大行数。大きすぎるとパフォーマンスに影響します。"
+msgstr "1回の読み込みで取得する最大行数。大きすぎるとパフォーマンスに影響します。"
+
+msgid "自動更新間隔 (秒)"
+msgstr "自動更新間隔 (秒)"
+
+msgid "自動更新タイマーの間隔（秒）。"
+msgstr "自動更新タイマーの間隔（秒）。"
+
+msgid "ダウンロードを許可"
+msgstr "ダウンロードを許可"
+
+msgid "ログのダウンロードボタンを表示します（5MB以下）。"
+msgstr "ログのダウンロードボタンを表示します（5MB以下）。"
+
+msgid "サイト管理者への操作許可"
+msgstr "サイト管理者への操作許可"
+
+msgid "個別サイト管理画面からのクリア／ダウンロードを許可します。"
+msgstr "個別サイト管理画面からのクリア／ダウンロードを許可します。"
+
+msgid "この操作を実行する権限がありません。"
+msgstr "この操作を実行する権限がありません。"
+
+msgid "ログビューアー"
+msgstr "ログビューアー"
+
+msgid "設定"
+msgstr "設定"
+
+msgid "デバッグログビューアー"
+msgstr "デバッグログビューアー"
+
+msgid "一時許可中: %s まで"
+msgstr "一時許可中: %s まで"
+
+msgid "表示モード"
+msgstr "表示モード"
+
+msgid "直近N行"
+msgstr "直近N行"
+
+msgid "直近M分"
+msgstr "直近M分"
+
+msgid "再読み込み"
+msgstr "再読み込み"
+
+msgid "一時停止"
+msgstr "一時停止"
+
+msgid "ログをクリア"
+msgstr "ログをクリア"
+
+msgid "ダウンロード"
+msgstr "ダウンロード"
+
+msgid "このビューアーを使用するには JavaScript を有効にしてください。"
+msgstr "このビューアーを使用するには JavaScript を有効にしてください。"
+
+msgid "ログビューアーの初期表示や自動更新設定を調整します。"
+msgstr "ログビューアーの初期表示や自動更新設定を調整します。"
+
+msgid "有効にする"
+msgstr "有効にする"
+
+msgid "本番環境での一時許可"
+msgstr "本番環境での一時許可"
+
+msgid "現在、一時許可が有効です（%s まで）。"
+msgstr "現在、一時許可が有効です（%s まで）。"
+
+msgid "本番環境では既定でクリア／ダウンロードは無効です。必要な場合のみ15分間の一時許可を発行できます。"
+msgstr "本番環境では既定でクリア／ダウンロードは無効です。必要な場合のみ15分間の一時許可を発行できます。"
+
+msgid "一時許可を解除"
+msgstr "一時許可を解除"
+
+msgid "15分間許可を発行"
+msgstr "15分間許可を発行"
+
+msgid "有効中:"
+msgstr "有効中:"
+
+msgid "一時的なログ出力"
+msgstr "一時的なログ出力"
+
+msgid "現在、一時ログ出力が有効です（%s まで）。"
+msgstr "現在、一時ログ出力が有効です（%s まで）。"
+
+msgid "wp-configを変更せずに15分間だけログ出力を有効化できます。"
+msgstr "wp-configを変更せずに15分間だけログ出力を有効化できます。"
+
+msgid "一時ログ出力を停止"
+msgstr "一時ログ出力を停止"
+
+msgid "15分間ログ出力を有効化"
+msgstr "15分間ログ出力を有効化"
+
+msgid "本番環境で15分間の一時許可を有効化しました。"
+msgstr "本番環境で15分間の一時許可を有効化しました。"
+
+msgid "本番環境での一時許可を解除しました。"
+msgstr "本番環境での一時許可を解除しました。"
+
+msgid "本番環境での一時許可を有効にしました。"
+msgstr "本番環境での一時許可を有効にしました。"
+
+msgid "操作に失敗しました。"
+msgstr "操作に失敗しました。"
+
+msgid "再開"
+msgstr "再開"
+
+msgid "ログをクリアしました。"
+msgstr "ログをクリアしました。"
+
+msgid "本当に debug.log をクリアしますか？"
+msgstr "本当に debug.log をクリアしますか？"
+
+msgid "ダウンロードに失敗しました。"
+msgstr "ダウンロードに失敗しました。"
+
+msgid "表示できるログがありません。"
+msgstr "表示できるログがありません。"
+
+msgid "タイムスタンプが見つからなかったため行数モードで表示しています。"
+msgstr "タイムスタンプが見つからなかったため行数モードで表示しています。"
+
+msgid "ファイル情報"
+msgstr "ファイル情報"
+
+msgid "サイズ"
+msgstr "サイズ"
+
+msgid "最終更新"
+msgstr "最終更新"
+
+msgid "debug.log が見つかりません。"
+msgstr "debug.log が見つかりません。"
+
+msgid "自動更新を一時停止しました。"
+msgstr "自動更新を一時停止しました。"
+
+msgid "自動更新を再開しました。"
+msgstr "自動更新を再開しました。"
+
+msgid "無効なリクエストです。"
+msgstr "無効なリクエストです。"
+
+msgid "wp-content/debug.log にアクセスできません。ファイル権限を確認してください。"
+msgstr "wp-content/debug.log にアクセスできません。ファイル権限を確認してください。"
+
+msgid "debug.log が見つかりません。WordPress のデバッグ設定を確認してください。"
+msgstr "debug.log が見つかりません。WordPress のデバッグ設定を確認してください。"
+
+msgid "ログファイルを開けませんでした。"
+msgstr "ログファイルを開けませんでした。"
+
+msgid "ログファイルをロックできませんでした。"
+msgstr "ログファイルをロックできませんでした。"
+
+msgid "ログファイルをクリアできませんでした。"
+msgstr "ログファイルをクリアできませんでした。"
+
+msgid "ログサイズを取得できませんでした。"
+msgstr "ログサイズを取得できませんでした。"
+
+msgid "ログが大きすぎます。5MB未満のみダウンロードできます。"
+msgstr "ログが大きすぎます。5MB未満のみダウンロードできます。"
+
+msgid "ログを読み込めませんでした。"
+msgstr "ログを読み込めませんでした。"
+
+msgid "debug.log が存在しません。"
+msgstr "debug.log が存在しません。"
+
+msgid "debug.log を読み取れません。ファイル権限を確認してください。"
+msgstr "debug.log を読み取れません。ファイル権限を確認してください。"
+
+msgid "debug.log に書き込めません。ファイル権限を確認してください。"
+msgstr "debug.log に書き込めません。ファイル権限を確認してください。"
+
+msgid "本番環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。"
+msgstr "本番環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。"
+
+msgid "本番環境では既定でダウンロードは無効です。"
+msgstr "本番環境では既定でダウンロードは無効です。"
+
+msgid "設定でダウンロード機能が無効化されています。"
+msgstr "設定でダウンロード機能が無効化されています。"
+
+msgid "ネットワーク管理者のみがログをクリアできます。"
+msgstr "ネットワーク管理者のみがログをクリアできます。"
+
+msgid "ネットワーク管理者のみがログをダウンロードできます。"
+msgstr "ネットワーク管理者のみがログをダウンロードできます。"
+
+msgid "取得に失敗しました。"
+msgstr "取得に失敗しました。"
+
+msgid "ダウンロード中…"
+msgstr "ダウンロード中…"
+
+msgid "クリアに失敗しました。"
+msgstr "クリアに失敗しました。"
