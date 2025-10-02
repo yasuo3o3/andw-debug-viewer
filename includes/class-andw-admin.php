@@ -544,10 +544,10 @@ class Andw_Admin {
         $temp_logging_active = ! empty( $permissions['temp_logging_active'] );
         $expires = ! empty( $permissions['temp_logging_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['temp_logging_expires'] ) : '';
 
-        // 実際のログ機能状態を確認
-        $log_file = WP_CONTENT_DIR . '/debug.log';
-        $actual_logging_works = ( ini_get( 'log_errors' ) && ( ini_get( 'error_log' ) || file_exists( $log_file ) ) ) ||
-                               ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG );
+        // 実際のログ機能状態を確認（file_existsは除去してループを防ぐ）
+        $actual_logging_works = ( ini_get( 'log_errors' ) && ini_get( 'error_log' ) ) ||
+                               ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) ||
+                               $temp_logging_active;
 
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
