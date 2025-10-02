@@ -22,6 +22,11 @@ class Andw_Log_Reader {
      * @return string
      */
     public function get_log_path() {
+        // 一時ログが有効な場合は別ファイルを使用
+        $settings = new Andw_Settings();
+        if ( $settings->is_temp_logging_active() ) {
+            return trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
+        }
         return trailingslashit( WP_CONTENT_DIR ) . self::LOG_RELATIVE_PATH;
     }
 

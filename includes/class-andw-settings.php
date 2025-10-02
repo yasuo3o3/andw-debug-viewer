@@ -216,7 +216,7 @@ class Andw_Settings {
             $this->apply_temp_logging_settings();
 
             // ログ有効化の確認メッセージをデバッグログファイルに出力
-            $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
+            $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
             $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
             if ( is_writable( dirname( $log_file ) ) || is_writable( $log_file ) ) {
                 file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
@@ -251,7 +251,7 @@ class Andw_Settings {
             if ( ! $updated ) {
                 error_log( 'andW Debug Viewer: 設定の保存に失敗しましたが、ログ機能を一時的に有効化します' );
                 $this->apply_temp_logging_settings();
-                $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
+                $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
                 $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: ログ出力を一時的に有効化しました（設定保存に問題がある可能性があります）';
                 if ( is_writable( dirname( $log_file ) ) || is_writable( $log_file ) ) {
                     file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
@@ -288,7 +288,7 @@ class Andw_Settings {
     private function apply_temp_logging_settings() {
         if ( $this->is_temp_logging_active() ) {
             ini_set( 'log_errors', '1' );
-            ini_set( 'error_log', WP_CONTENT_DIR . '/debug.log' );
+            ini_set( 'error_log', WP_CONTENT_DIR . '/debug-temp.log' );
             error_reporting( E_ALL );
         }
     }
@@ -304,45 +304,11 @@ class Andw_Settings {
 
         error_log( 'andW Debug Viewer: Temporary logging expired' );
 
-        // WP_DEBUG が false の場合のみログをクリア
-        if ( ! $wp_debug_enabled || ! $wp_debug_log_enabled ) {
-            $log_file = WP_CONTENT_DIR . '/debug.log';
-
-            if ( file_exists( $log_file ) ) {
-                // ログファイルのサイズを確認
-                $file_size = filesize( $log_file );
-
-                // 一時ログ用のマーカーが含まれているかチェック
-                $content = file_get_contents( $log_file );
-                $has_temp_logs = strpos( $content, 'andW Debug Viewer:' ) !== false;
-
-                if ( $has_temp_logs ) {
-                    // andW Debug Viewer のログエントリのみを削除
-                    $lines = explode( "\n", $content );
-                    $filtered_lines = array();
-
-                    foreach ( $lines as $line ) {
-                        // andW Debug Viewer 以外のログエントリは保持
-                        if ( strpos( $line, 'andW Debug Viewer:' ) === false && ! empty( trim( $line ) ) ) {
-                            $filtered_lines[] = $line;
-                        }
-                    }
-
-                    if ( empty( $filtered_lines ) ) {
-                        // andW のログのみだった場合はファイルを削除
-                        unlink( $log_file );
-                        error_log( 'andW Debug Viewer: Cleaned up temporary log file (deleted)' );
-                    } else {
-                        // 他のログがある場合は andW のエントリのみ削除
-                        file_put_contents( $log_file, implode( "\n", $filtered_lines ) . "\n" );
-                        error_log( 'andW Debug Viewer: Cleaned up temporary log entries (filtered)' );
-                    }
-                } else {
-                    error_log( 'andW Debug Viewer: No temporary logs found, leaving file intact' );
-                }
-            }
-        } else {
-            error_log( 'andW Debug Viewer: WP_DEBUG is enabled, leaving logs intact' );
+        // 一時ログファイルが存在する場合は削除
+        $temp_log_file = WP_CONTENT_DIR . '/debug-temp.log';
+        if ( file_exists( $temp_log_file ) ) {
+            unlink( $temp_log_file );
+            error_log( 'andW Debug Viewer: Cleaned up temporary log file (deleted): debug-temp.log' );
         }
     }
 
