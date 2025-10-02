@@ -176,13 +176,55 @@ class Andw_Settings {
      */
     public function enable_temp_logging() {
         $settings = $this->get_settings();
+        $old_settings = $settings; // バックアップ
+
         $settings['temp_logging_enabled'] = true;
         $settings['temp_logging_expiration'] = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
 
+        // まず update_option を試行
         $updated = update_option( self::OPTION_NAME, $settings, false );
+
+        // update_option が false を返した場合でも、値が変わっていない場合は true とみなす場合がある
+        if ( ! $updated ) {
+            // 現在保存されている値を確認
+            $current_saved = get_option( self::OPTION_NAME, array() );
+            // 期待する値と一致するかチェック
+            if ( isset( $current_saved['temp_logging_enabled'] ) &&
+                 $current_saved['temp_logging_enabled'] &&
+                 isset( $current_saved['temp_logging_expiration'] ) &&
+                 abs( $current_saved['temp_logging_expiration'] - $settings['temp_logging_expiration'] ) < 5 ) {
+                $updated = true; // 実際には正しく保存されている
+            }
+        }
+
+        // デバッグ情報をログに出力
+        error_log( 'andW Debug Viewer: enable_temp_logging() - update_option result: ' . ( $updated ? 'SUCCESS' : 'FAILED' ) );
+        error_log( 'andW Debug Viewer: Target settings: ' . print_r( $settings, true ) );
 
         if ( $updated ) {
             $this->apply_temp_logging_settings();
+            // 設定が正しく保存されたか確認
+            $saved_settings = $this->get_settings();
+            error_log( 'andW Debug Viewer: Saved settings verification: ' . print_r( $saved_settings, true ) );
+        } else {
+            // 失敗時は詳細情報をログに出力
+            error_log( 'andW Debug Viewer: Original settings: ' . print_r( $old_settings, true ) );
+            $current_saved = get_option( self::OPTION_NAME, array() );
+            error_log( 'andW Debug Viewer: Currently saved: ' . print_r( $current_saved, true ) );
+
+            // WordPressのデータベースエラーがあるかチェック
+            global $wpdb;
+            if ( $wpdb->last_error ) {
+                error_log( 'andW Debug Viewer: Database error: ' . $wpdb->last_error );
+            }
+
+            // 代替手段: 直接設定を更新
+            $manual_save = array(
+                'temp_logging_enabled' => true,
+                'temp_logging_expiration' => current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS ),
+            );
+            $result = add_option( self::OPTION_NAME . '_temp', $manual_save, '', 'no' );
+            error_log( 'andW Debug Viewer: Manual save result: ' . ( $result ? 'SUCCESS' : 'FAILED' ) );
         }
 
         return $updated;
