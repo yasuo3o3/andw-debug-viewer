@@ -205,6 +205,10 @@ class Andw_Settings {
 
         if ( $updated ) {
             $this->apply_temp_logging_settings();
+
+            // ログ有効化の確認メッセージをデバッグログファイルに出力
+            $this->write_debug_log( 'andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] ) );
+
             // 設定が正しく保存されたか確認
             $saved_settings = $this->get_settings();
             error_log( 'andW Debug Viewer: Saved settings verification: ' . print_r( $saved_settings, true ) );
