@@ -118,9 +118,36 @@ class Andw_Plugin {
      */
     public function maybe_apply_temp_logging() {
         if ( $this->settings->is_temp_logging_active() ) {
+            // より確実なログ設定
+            $log_file = WP_CONTENT_DIR . '/debug.log';
+
+            // PHPのエラーログ設定
             ini_set( 'log_errors', '1' );
-            ini_set( 'error_log', WP_CONTENT_DIR . '/debug.log' );
+            ini_set( 'error_log', $log_file );
             error_reporting( E_ALL );
+
+            // WordPressの定数も動的に設定（可能な場合）
+            if ( ! defined( 'WP_DEBUG_LOG' ) ) {
+                define( 'WP_DEBUG_LOG', true );
+            }
+
+            // カスタムエラーハンドラーを設定
+            if ( ! function_exists( 'andw_custom_error_handler' ) ) {
+                function andw_custom_error_handler( $errno, $errstr, $errfile, $errline ) {
+                    $log_file = WP_CONTENT_DIR . '/debug.log';
+                    $timestamp = wp_date( 'Y-m-d H:i:s' );
+                    $message = "[$timestamp] PHP Error: $errstr in $errfile on line $errline";
+                    error_log( $message );
+                    // ファイルに直接書き込みも試行
+                    if ( is_writable( dirname( $log_file ) ) ) {
+                        file_put_contents( $log_file, $message . PHP_EOL, FILE_APPEND | LOCK_EX );
+                    }
+                    return false; // PHPの標準エラーハンドラーも実行
+                }
+                set_error_handler( 'andw_custom_error_handler', E_ALL );
+            }
+
+            error_log( 'andW Debug Viewer: Temporary logging activated successfully' );
         }
     }
 

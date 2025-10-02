@@ -34,6 +34,9 @@ class Andw_Admin {
         // 汎用的なadmin-post.phpデバッグ
         add_action( 'admin_post_nopriv_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
         add_action( 'admin_init', array( $this, 'debug_admin_post' ) );
+
+        // Ajax代替手段
+        add_action( 'wp_ajax_andw_toggle_temp_logging', array( $this, 'ajax_toggle_temp_logging' ) );
     }
 
     /**
@@ -822,14 +825,26 @@ class Andw_Admin {
 
         // ログ機能の実際の状況判定
         $logging_analysis = "[$timestamp] andW Debug Viewer: ログ機能分析";
-        if ( ini_get( 'log_errors' ) && ini_get( 'error_log' ) ) {
-            $logging_analysis .= " | 結論: PHPログ機能は既に有効です";
-            $logging_analysis .= " | 一時有効化: 不要（既に動作中）";
-        } elseif ( $wp_debug === 'true' && $wp_debug_log === 'true' ) {
+
+        // 実際にログが出力できるかテスト
+        $can_log = false;
+        if ( ini_get( 'log_errors' ) ) {
+            if ( ini_get( 'error_log' ) || file_exists( $log_file ) ) {
+                $can_log = true;
+                $logging_analysis .= " | 結論: PHPログ機能は有効です（ini_set可能またはファイル存在）";
+            }
+        }
+
+        if ( ! $can_log && $wp_debug === 'true' && $wp_debug_log === 'true' ) {
+            $can_log = true;
             $logging_analysis .= " | 結論: WordPressデバッグログが有効です";
-            $logging_analysis .= " | 一時有効化: 不要（WP設定で有効）";
+        }
+
+        if ( $can_log ) {
+            $logging_analysis .= " | 一時有効化: 不要（既に動作中）";
+            $logging_analysis .= " | 推奨: 設定の確認と修正";
         } else {
-            $logging_analysis .= " | 結論: ログ機能が無効状態です";
+            $logging_analysis .= " | 結論: ログ機能が完全に無効状態です";
             $logging_analysis .= " | 一時有効化: 必要";
         }
 
@@ -860,5 +875,33 @@ class Andw_Admin {
 
         wp_safe_redirect( $redirect_url );
         exit;
+    }
+
+    /**
+     * Ajax handler for temporary logging toggle.
+     *
+     * @return void
+     */
+    public function ajax_toggle_temp_logging() {
+        error_log( 'andW Debug Viewer: ajax_toggle_temp_logging() called' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( json_encode( array( 'success' => false, 'message' => 'Permission denied' ) ) );
+        }
+
+        check_ajax_referer( 'andw_ajax_nonce', 'nonce' );
+
+        $state = isset( $_POST['state'] ) ? sanitize_key( $_POST['state'] ) : '';
+        $settings = $this->plugin->get_settings_handler();
+
+        if ( 'enable' === $state ) {
+            $success = $settings->enable_temp_logging();
+            $message = $success ? 'temp_logging_enabled' : 'temp_logging_error';
+        } else {
+            $success = $settings->disable_temp_logging();
+            $message = $success ? 'temp_logging_disabled' : 'temp_logging_error';
+        }
+
+        wp_die( json_encode( array( 'success' => $success, 'message' => $message ) ) );
     }
 }
