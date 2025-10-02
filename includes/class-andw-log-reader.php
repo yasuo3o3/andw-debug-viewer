@@ -22,12 +22,23 @@ class Andw_Log_Reader {
      * @return string
      */
     public function get_log_path() {
-        // 一時ログが有効な場合は別ファイルを使用
         $settings = new Andw_Settings();
+
+        // 一時ログが有効な場合は別ファイルを使用（安全に操作可能）
         if ( $settings->is_temp_logging_active() ) {
             return trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
         }
-        return trailingslashit( WP_CONTENT_DIR ) . self::LOG_RELATIVE_PATH;
+
+        // WP_DEBUGが有効な場合のみ元のdebug.logを参照
+        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        if ( $wp_debug_enabled && $wp_debug_log_enabled ) {
+            return trailingslashit( WP_CONTENT_DIR ) . self::LOG_RELATIVE_PATH;
+        }
+
+        // WP_DEBUG=falseの場合はログファイルなし
+        return null;
     }
 
     /**

@@ -177,6 +177,15 @@ class Andw_Settings {
      * @return bool Success status.
      */
     public function enable_temp_logging() {
+        // WP_DEBUGが有効な場合は一時ログを有効化しない
+        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        if ( $wp_debug_enabled && $wp_debug_log_enabled ) {
+            error_log( 'andW Debug Viewer: WP_DEBUGが有効なため、一時ログの有効化をスキップします' );
+            return false;
+        }
+
         $settings = $this->get_settings();
         $old_settings = $settings; // バックアップ
 

@@ -192,7 +192,8 @@ class Andw_Plugin {
             'download' => '',
         );
 
-        if ( $is_production && ! $override_active ) {
+        // 一時ログ有効時は別ファイルなので本番環境でも操作可能
+        if ( $is_production && ! $override_active && ! $temp_logging_active ) {
             $can_clear    = false;
             $can_download = false;
             $reasons['clear']    = __( '本番環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。', 'andw-debug-viewer' );
