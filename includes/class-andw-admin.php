@@ -541,13 +541,22 @@ class Andw_Admin {
      * @return void
      */
     private function render_temp_logging_controls( array $permissions ) {
+        error_log( 'andW Debug Viewer: render_temp_logging_controls() - permissions: ' . print_r( $permissions, true ) );
+
         $temp_logging_active = ! empty( $permissions['temp_logging_active'] );
+        $temp_session_active = ! empty( $permissions['temp_session_active'] );
         $expires = ! empty( $permissions['temp_logging_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['temp_logging_expires'] ) : '';
 
-        // 実際のログ機能状態を確認（file_existsは除去してループを防ぐ）
+        error_log( 'andW Debug Viewer: render_temp_logging_controls() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: render_temp_logging_controls() - temp_session_active: ' . ( $temp_session_active ? 'true' : 'false' ) );
+
+        // 実際のログ機能状態を確認（セッション有効時も含む）
         $actual_logging_works = ( ini_get( 'log_errors' ) && ini_get( 'error_log' ) ) ||
                                ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) ||
-                               $temp_logging_active;
+                               $temp_logging_active ||
+                               $temp_session_active;
+
+        error_log( 'andW Debug Viewer: render_temp_logging_controls() - actual_logging_works: ' . ( $actual_logging_works ? 'true' : 'false' ) );
 
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
@@ -574,6 +583,10 @@ class Andw_Admin {
                     $seconds = max( 0, $remaining % 60 );
                     echo ' - 残り時間: <span class="andw-countdown" id="temp-logging-countdown">' . sprintf( '%02d:%02d', $minutes, $seconds ) . '</span>';
                 }
+                echo '</div><br>';
+            } elseif ( $temp_session_active ) {
+                echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
+                echo '<strong>🟢 一時セッション 有効中</strong> - ログ操作が15分間許可されています';
                 echo '</div><br>';
             } else {
                 echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';

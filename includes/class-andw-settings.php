@@ -334,12 +334,17 @@ class Andw_Settings {
     private function create_temp_session_file() {
         error_log( 'andW Debug Viewer: create_temp_session_file() called' );
 
+        // Use time() instead of current_time() for consistency across environments
+        $now = time();
         $session_data = array(
-            'created_at' => current_time( 'timestamp' ),
-            'expires_at' => current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS ),
+            'created_at' => $now,
+            'expires_at' => $now + ( 15 * MINUTE_IN_SECONDS ),
             'session_type' => 'temp_logging',
             'safe_to_clear' => true,
         );
+
+        error_log( 'andW Debug Viewer: create_temp_session_file() - current time: ' . $now );
+        error_log( 'andW Debug Viewer: create_temp_session_file() - expires at: ' . $session_data['expires_at'] );
 
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
@@ -364,16 +369,35 @@ class Andw_Settings {
     public function is_temp_session_active() {
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
+        error_log( 'andW Debug Viewer: is_temp_session_active() - session_file: ' . $session_file );
+        error_log( 'andW Debug Viewer: is_temp_session_active() - file_exists: ' . ( file_exists( $session_file ) ? 'true' : 'false' ) );
+
         if ( ! file_exists( $session_file ) ) {
+            error_log( 'andW Debug Viewer: is_temp_session_active() - セッションファイルが存在しません' );
             return false;
         }
 
-        $session_data = json_decode( file_get_contents( $session_file ), true );
+        $session_content = file_get_contents( $session_file );
+        error_log( 'andW Debug Viewer: is_temp_session_active() - session_content: ' . $session_content );
+
+        $session_data = json_decode( $session_content, true );
+        error_log( 'andW Debug Viewer: is_temp_session_active() - session_data: ' . print_r( $session_data, true ) );
+
         if ( ! $session_data || ! isset( $session_data['expires_at'] ) ) {
+            error_log( 'andW Debug Viewer: is_temp_session_active() - セッションデータが無効またはexpires_atが不足' );
             return false;
         }
 
-        return $session_data['expires_at'] > current_time( 'timestamp' );
+        // Use time() instead of current_time() for consistency with session creation
+        $current_time = time();
+        $expires_at = $session_data['expires_at'];
+        $is_active = $expires_at > $current_time;
+
+        error_log( 'andW Debug Viewer: is_temp_session_active() - current_time: ' . $current_time );
+        error_log( 'andW Debug Viewer: is_temp_session_active() - expires_at: ' . $expires_at );
+        error_log( 'andW Debug Viewer: is_temp_session_active() - is_active: ' . ( $is_active ? 'true' : 'false' ) );
+
+        return $is_active;
     }
 
     /**

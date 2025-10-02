@@ -239,6 +239,7 @@ class Andw_Plugin {
             'override_expires'           => $override_active ? (int) $settings['production_temp_expiration'] : 0,
             'temp_logging_active'        => $temp_logging_active,
             'temp_logging_expires'       => $temp_logging_active ? (int) $settings['temp_logging_expiration'] : 0,
+            'temp_session_active'        => $temp_session_active,
             'can_view'                   => true,
             'can_clear'                  => $can_clear,
             'can_download'               => $can_download,
