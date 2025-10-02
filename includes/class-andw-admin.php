@@ -682,24 +682,48 @@ class Andw_Admin {
      * @return void
      */
     public function handle_temp_logging_toggle() {
+        // デバッグ情報を最初に出力
+        error_log( 'andW Debug Viewer: handle_temp_logging_toggle() started' );
+
         if ( ! current_user_can( 'manage_options' ) ) {
+            error_log( 'andW Debug Viewer: Permission denied - user cannot manage_options' );
             wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
         }
 
+        if ( ! isset( $_POST['_wpnonce'] ) ) {
+            error_log( 'andW Debug Viewer: Nonce missing from POST data' );
+            wp_die( esc_html__( 'ナンスが見つかりません。', 'andw-debug-viewer' ) );
+        }
+
         if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'andw_toggle_temp_logging' ) ) {
+            error_log( 'andW Debug Viewer: Nonce verification failed' );
             wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
         }
 
-        $state = sanitize_key( $_POST['state'] );
-        $settings = $this->plugin->get_settings_handler();
+        $state = isset( $_POST['state'] ) ? sanitize_key( $_POST['state'] ) : '';
+        error_log( 'andW Debug Viewer: State received: ' . $state );
 
-        if ( 'enable' === $state ) {
-            $success = $settings->enable_temp_logging();
-            $message = $success ? 'temp_logging_enabled' : 'temp_logging_error';
+        if ( empty( $state ) ) {
+            error_log( 'andW Debug Viewer: State is empty' );
+            $message = 'temp_logging_error';
         } else {
-            $success = $settings->disable_temp_logging();
-            $message = $success ? 'temp_logging_disabled' : 'temp_logging_error';
+            $settings = $this->plugin->get_settings_handler();
+            error_log( 'andW Debug Viewer: Settings handler retrieved successfully' );
+
+            if ( 'enable' === $state ) {
+                error_log( 'andW Debug Viewer: Attempting to enable temp logging' );
+                $success = $settings->enable_temp_logging();
+                error_log( 'andW Debug Viewer: enable_temp_logging() returned: ' . ( $success ? 'true' : 'false' ) );
+                $message = $success ? 'temp_logging_enabled' : 'temp_logging_error';
+            } else {
+                error_log( 'andW Debug Viewer: Attempting to disable temp logging' );
+                $success = $settings->disable_temp_logging();
+                error_log( 'andW Debug Viewer: disable_temp_logging() returned: ' . ( $success ? 'true' : 'false' ) );
+                $message = $success ? 'temp_logging_disabled' : 'temp_logging_error';
+            }
         }
+
+        error_log( 'andW Debug Viewer: Final message: ' . $message );
 
         $redirect_url = add_query_arg(
             array(
@@ -710,6 +734,7 @@ class Andw_Admin {
             admin_url( 'admin.php' )
         );
 
+        error_log( 'andW Debug Viewer: Redirecting to: ' . $redirect_url );
         wp_safe_redirect( $redirect_url );
         exit;
     }
