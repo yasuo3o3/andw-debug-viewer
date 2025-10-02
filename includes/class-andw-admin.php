@@ -717,18 +717,40 @@ class Andw_Admin {
             wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
         }
 
+        // デバッグ情報収集
+        $environment = wp_get_environment_type();
+        $temp_logging_active = $this->plugin->get_settings_handler()->is_temp_logging_active();
+        $log_file = WP_CONTENT_DIR . '/debug.log';
+        $log_errors = ini_get( 'log_errors' );
+        $error_log_setting = ini_get( 'error_log' );
+
+        // 強制的にログ設定を適用
+        if ( $temp_logging_active ) {
+            ini_set( 'log_errors', '1' );
+            ini_set( 'error_log', $log_file );
+            error_reporting( E_ALL );
+        }
+
         $timestamp = wp_date( 'Y-m-d H:i:s' );
+        $debug_info = "[$timestamp] andW Debug Viewer: デバッグ情報";
+        $debug_info .= " | 環境: $environment";
+        $debug_info .= " | 一時ログ有効: " . ( $temp_logging_active ? 'YES' : 'NO' );
+        $debug_info .= " | log_errors: $log_errors → " . ini_get( 'log_errors' );
+        $debug_info .= " | error_log: $error_log_setting → " . ini_get( 'error_log' );
+
         $test_messages = array(
+            $debug_info,
             "[$timestamp] andW Debug Viewer: テストログメッセージ - INFO レベル",
             "[$timestamp] andW Debug Viewer: テストエラーメッセージ - ERROR レベル",
-            "[$timestamp] andW Debug Viewer: テスト警告メッセージ - WARNING レベル",
-            "[$timestamp] andW Debug Viewer: デバッグ情報 - DEBUG レベル"
+            "[$timestamp] andW Debug Viewer: テスト警告メッセージ - WARNING レベル"
         );
-
-        $log_file = WP_CONTENT_DIR . '/debug.log';
 
         foreach ( $test_messages as $message ) {
             error_log( $message );
+            // ファイルに直接書き込みも試行
+            if ( is_writable( dirname( $log_file ) ) ) {
+                file_put_contents( $log_file, $message . PHP_EOL, FILE_APPEND | LOCK_EX );
+            }
         }
 
         $redirect_url = add_query_arg(

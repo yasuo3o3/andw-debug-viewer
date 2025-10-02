@@ -89,6 +89,8 @@ class Andw_Plugin {
         add_action( 'admin_init', array( $this->admin, 'register_settings' ) );
         add_action( 'admin_enqueue_scripts', array( $this->admin, 'enqueue_assets' ) );
         add_action( 'init', array( $this, 'maybe_apply_temp_logging' ) );
+        add_action( 'admin_init', array( $this, 'maybe_apply_temp_logging' ) );
+        add_action( 'wp_loaded', array( $this, 'maybe_apply_temp_logging' ) );
     }
 
     /**
