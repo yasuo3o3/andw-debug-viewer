@@ -240,30 +240,26 @@
 
     // DOMContentLoaded後にカウントダウンを初期化
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initCountdowns);
+        document.addEventListener('DOMContentLoaded', andwInitCountdowns);
     } else {
-        initCountdowns();
+        andwInitCountdowns();
     }
 })();
 
 /**
  * Initialize countdown timers for temporary permissions
  */
-function initCountdowns() {
+function andwInitCountdowns() {
     const countdownElements = document.querySelectorAll('.andw-countdown');
-    console.log('initCountdowns: Found', countdownElements.length, 'countdown elements');
 
     countdownElements.forEach(function(element) {
         const statusDisplay = element.closest('.andw-status-display');
         if (!statusDisplay) {
-            console.log('No status display found for countdown element');
             return;
         }
 
         const expiresTimestamp = parseInt(statusDisplay.dataset.expires, 10);
-        console.log('Expires timestamp:', expiresTimestamp);
         if (!expiresTimestamp) {
-            console.log('No valid expires timestamp');
             return;
         }
 
