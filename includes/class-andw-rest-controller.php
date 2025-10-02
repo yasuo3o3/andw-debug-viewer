@@ -133,10 +133,14 @@ class Andw_Rest_Controller extends WP_REST_Controller {
      * @return WP_REST_Response|WP_Error
      */
     public function get_tail( WP_REST_Request $request ) {
+        error_log( 'andW Debug Viewer: REST API get_tail called' );
+
         $mode  = $request->get_param( 'mode' );
         $value = $request->get_param( 'value' );
         $settings = $this->plugin->get_settings();
         $max_lines = (int) $settings['max_lines'];
+
+        error_log( 'andW Debug Viewer: REST API - mode: ' . $mode . ', value: ' . $value );
 
         if ( 'minutes' === $mode ) {
             $minutes = ( null !== $value ) ? (int) $value : (int) $settings['default_minutes'];
@@ -153,10 +157,14 @@ class Andw_Rest_Controller extends WP_REST_Controller {
             if ( $lines > $max_lines ) {
                 $lines = $max_lines;
             }
+            error_log( 'andW Debug Viewer: REST API - calling read_tail_by_lines with lines: ' . $lines );
             $result = $this->plugin->get_log_reader()->read_tail_by_lines( $lines, $max_lines );
         }
 
+        error_log( 'andW Debug Viewer: REST API - result type: ' . ( is_wp_error( $result ) ? 'WP_Error' : gettype( $result ) ) );
+
         if ( is_wp_error( $result ) ) {
+            error_log( 'andW Debug Viewer: REST API - WP_Error: ' . $result->get_error_message() );
             return $this->prepare_error_response( $result );
         }
 
