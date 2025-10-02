@@ -364,16 +364,32 @@ class Andw_Settings {
     public function is_temp_session_active() {
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
+        // 直接ファイルにデバッグ情報を書き込み（WP_DEBUG=falseでも出力される）
+        $debug_log = WP_CONTENT_DIR . '/debug.log';
+        $debug_message = '[' . date('Y-m-d H:i:s') . '] andW Debug Viewer: is_temp_session_active() called' . PHP_EOL;
+        file_put_contents( $debug_log, $debug_message, FILE_APPEND | LOCK_EX );
+
         if ( ! file_exists( $session_file ) ) {
+            $debug_message = '[' . date('Y-m-d H:i:s') . '] andW Debug Viewer: Session file not found: ' . $session_file . PHP_EOL;
+            file_put_contents( $debug_log, $debug_message, FILE_APPEND | LOCK_EX );
             return false;
         }
 
         $session_data = json_decode( file_get_contents( $session_file ), true );
         if ( ! $session_data || ! isset( $session_data['expires_at'] ) ) {
+            $debug_message = '[' . date('Y-m-d H:i:s') . '] andW Debug Viewer: Invalid session data' . PHP_EOL;
+            file_put_contents( $debug_log, $debug_message, FILE_APPEND | LOCK_EX );
             return false;
         }
 
-        return $session_data['expires_at'] > current_time( 'timestamp' );
+        $current_timestamp = current_time( 'timestamp' );
+        $expires_at = $session_data['expires_at'];
+        $is_active = $expires_at > $current_timestamp;
+
+        $debug_message = '[' . date('Y-m-d H:i:s') . '] andW Debug Viewer: Session check - current: ' . $current_timestamp . ', expires: ' . $expires_at . ', active: ' . ($is_active ? 'true' : 'false') . PHP_EOL;
+        file_put_contents( $debug_log, $debug_message, FILE_APPEND | LOCK_EX );
+
+        return $is_active;
     }
 
     /**
