@@ -378,11 +378,11 @@ class Andw_Admin {
     private function render_settings_tab( array $permissions ) {
         echo '<section class="andw-settings">';
 
+        $this->render_temp_logging_controls( $permissions );
+
         if ( 'production' === $permissions['environment'] ) {
             $this->render_production_override_controls( $permissions );
         }
-
-        $this->render_temp_logging_controls( $permissions );
 
         echo '<form action="' . esc_url( admin_url( 'options.php' ) ) . '" method="post">';
         settings_fields( 'andw_settings_group' );
