@@ -29,6 +29,7 @@ class Andw_Admin {
         $this->plugin = $plugin;
         add_action( 'admin_post_andw_toggle_prod_override', array( $this, 'handle_toggle_production_override' ) );
         add_action( 'admin_post_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
+        add_action( 'admin_post_andw_test_log_output', array( $this, 'handle_test_log_output' ) );
     }
 
     /**
@@ -520,7 +521,7 @@ class Andw_Admin {
         }
 
         echo '<div class="andw-control-row">';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block; margin-right:10px;">';
         wp_nonce_field( 'andw_toggle_temp_logging' );
         echo '<input type="hidden" name="action" value="andw_toggle_temp_logging">';
         if ( $temp_logging_active ) {
@@ -530,6 +531,12 @@ class Andw_Admin {
             echo '<input type="hidden" name="state" value="enable">';
             submit_button( __( '15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary', 'submit', false );
         }
+        echo '</form>';
+
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;">';
+        wp_nonce_field( 'andw_test_log_output' );
+        echo '<input type="hidden" name="action" value="andw_test_log_output">';
+        submit_button( __( 'テスト用ログ出力', 'andw-debug-viewer' ), 'secondary', 'submit', false );
         echo '</form>';
 
         if ( $temp_logging_active && ! empty( $permissions['temp_logging_expires'] ) ) {
@@ -601,6 +608,7 @@ class Andw_Admin {
             'temp_logging_enabled' => __( '一時ログ出力を有効にしました（15分間）。', 'andw-debug-viewer' ),
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
             'temp_logging_error'   => __( 'ログ出力設定の変更に失敗しました。', 'andw-debug-viewer' ),
+            'test_log_success'     => __( 'テスト用ログメッセージを出力しました。ログビューアーで確認してください。', 'andw-debug-viewer' ),
         );
 
         $message_key = $override_message ?: $temp_logging_message ?: $legacy_message;
@@ -687,6 +695,47 @@ class Andw_Admin {
                 'page' => 'andw-debug-viewer',
                 'tab'  => 'settings',
                 'temp_logging_message' => $message,
+            ),
+            admin_url( 'admin.php' )
+        );
+
+        wp_safe_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * Handle test log output.
+     *
+     * @return void
+     */
+    public function handle_test_log_output() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
+        }
+
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'andw_test_log_output' ) ) {
+            wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
+        }
+
+        $timestamp = wp_date( 'Y-m-d H:i:s' );
+        $test_messages = array(
+            "[$timestamp] andW Debug Viewer: テストログメッセージ - INFO レベル",
+            "[$timestamp] andW Debug Viewer: テストエラーメッセージ - ERROR レベル",
+            "[$timestamp] andW Debug Viewer: テスト警告メッセージ - WARNING レベル",
+            "[$timestamp] andW Debug Viewer: デバッグ情報 - DEBUG レベル"
+        );
+
+        $log_file = WP_CONTENT_DIR . '/debug.log';
+
+        foreach ( $test_messages as $message ) {
+            error_log( $message );
+        }
+
+        $redirect_url = add_query_arg(
+            array(
+                'page' => 'andw-debug-viewer',
+                'tab'  => 'settings',
+                'temp_logging_message' => 'test_log_success',
             ),
             admin_url( 'admin.php' )
         );
