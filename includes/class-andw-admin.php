@@ -30,6 +30,24 @@ class Andw_Admin {
         add_action( 'admin_post_andw_toggle_prod_override', array( $this, 'handle_toggle_production_override' ) );
         add_action( 'admin_post_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
         add_action( 'admin_post_andw_test_log_output', array( $this, 'handle_test_log_output' ) );
+
+        // 汎用的なadmin-post.phpデバッグ
+        add_action( 'admin_post_nopriv_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
+        add_action( 'admin_init', array( $this, 'debug_admin_post' ) );
+    }
+
+    /**
+     * Debug admin-post.php requests.
+     *
+     * @return void
+     */
+    public function debug_admin_post() {
+        if ( isset( $_POST['action'] ) && strpos( $_POST['action'], 'andw_' ) === 0 ) {
+            error_log( 'andW Debug Viewer: admin-post.php action detected: ' . $_POST['action'] );
+            error_log( 'andW Debug Viewer: POST data: ' . print_r( $_POST, true ) );
+            error_log( 'andW Debug Viewer: Current user ID: ' . get_current_user_id() );
+            error_log( 'andW Debug Viewer: Can manage options: ' . ( current_user_can( 'manage_options' ) ? 'YES' : 'NO' ) );
+        }
     }
 
     /**
