@@ -719,7 +719,10 @@ class Andw_Admin {
 
         // デバッグ情報収集
         $environment = wp_get_environment_type();
-        $temp_logging_active = $this->plugin->get_settings_handler()->is_temp_logging_active();
+        $settings_handler = $this->plugin->get_settings_handler();
+        $settings = $settings_handler->get_settings();
+        $temp_logging_active = $settings_handler->is_temp_logging_active();
+        $current_time = current_time( 'timestamp' );
         $log_file = WP_CONTENT_DIR . '/debug.log';
         $log_errors = ini_get( 'log_errors' );
         $error_log_setting = ini_get( 'error_log' );
@@ -732,11 +735,15 @@ class Andw_Admin {
         }
 
         $timestamp = wp_date( 'Y-m-d H:i:s' );
-        $debug_info = "[$timestamp] andW Debug Viewer: デバッグ情報";
+        $debug_info = "[$timestamp] andW Debug Viewer: 詳細デバッグ情報";
         $debug_info .= " | 環境: $environment";
         $debug_info .= " | 一時ログ有効: " . ( $temp_logging_active ? 'YES' : 'NO' );
+        $debug_info .= " | 現在時刻: $current_time";
+        $debug_info .= " | 有効化フラグ: " . ( ! empty( $settings['temp_logging_enabled'] ) ? 'YES' : 'NO' );
+        $debug_info .= " | 期限: " . ( ! empty( $settings['temp_logging_expiration'] ) ? $settings['temp_logging_expiration'] : 'なし' );
+        $debug_info .= " | 期限チェック: " . ( ! empty( $settings['temp_logging_expiration'] ) && $settings['temp_logging_expiration'] > $current_time ? 'OK' : 'NG' );
         $debug_info .= " | log_errors: $log_errors → " . ini_get( 'log_errors' );
-        $debug_info .= " | error_log: $error_log_setting → " . ini_get( 'error_log' );
+        $debug_info .= " | error_log: '$error_log_setting' → '" . ini_get( 'error_log' ) . "'";
 
         $test_messages = array(
             $debug_info,
