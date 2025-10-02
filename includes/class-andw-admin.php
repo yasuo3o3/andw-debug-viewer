@@ -789,8 +789,24 @@ class Andw_Admin {
         }
 
         $timestamp = wp_date( 'Y-m-d H:i:s' );
-        $debug_info = "[$timestamp] andW Debug Viewer: 詳細デバッグ情報";
+
+        // WP_DEBUG関連設定を確認
+        $wp_debug = defined( 'WP_DEBUG' ) ? ( WP_DEBUG ? 'true' : 'false' ) : 'undefined';
+        $wp_debug_log = defined( 'WP_DEBUG_LOG' ) ? ( WP_DEBUG_LOG ? 'true' : 'false' ) : 'undefined';
+
+        // debug.logファイルの存在確認
+        $log_file_exists = file_exists( $log_file ) ? 'YES' : 'NO';
+        $log_file_writable = is_writable( dirname( $log_file ) ) ? 'YES' : 'NO';
+        $log_file_size = file_exists( $log_file ) ? filesize( $log_file ) : 0;
+
+        // PHPの設定詳細
+        $display_errors = ini_get( 'display_errors' );
+        $error_reporting_level = error_reporting();
+
+        $debug_info = "[$timestamp] andW Debug Viewer: 完全デバッグ情報";
         $debug_info .= " | 環境: $environment";
+        $debug_info .= " | WP_DEBUG: $wp_debug";
+        $debug_info .= " | WP_DEBUG_LOG: $wp_debug_log";
         $debug_info .= " | 一時ログ有効: " . ( $temp_logging_active ? 'YES' : 'NO' );
         $debug_info .= " | 現在時刻: $current_time";
         $debug_info .= " | 有効化フラグ: " . ( ! empty( $settings['temp_logging_enabled'] ) ? 'YES' : 'NO' );
@@ -798,9 +814,28 @@ class Andw_Admin {
         $debug_info .= " | 期限チェック: " . ( ! empty( $settings['temp_logging_expiration'] ) && $settings['temp_logging_expiration'] > $current_time ? 'OK' : 'NG' );
         $debug_info .= " | log_errors: $log_errors → " . ini_get( 'log_errors' );
         $debug_info .= " | error_log: '$error_log_setting' → '" . ini_get( 'error_log' ) . "'";
+        $debug_info .= " | display_errors: $display_errors";
+        $debug_info .= " | error_reporting: $error_reporting_level";
+        $debug_info .= " | debug.log存在: $log_file_exists";
+        $debug_info .= " | 書き込み可能: $log_file_writable";
+        $debug_info .= " | ファイルサイズ: $log_file_size bytes";
+
+        // ログ機能の実際の状況判定
+        $logging_analysis = "[$timestamp] andW Debug Viewer: ログ機能分析";
+        if ( ini_get( 'log_errors' ) && ini_get( 'error_log' ) ) {
+            $logging_analysis .= " | 結論: PHPログ機能は既に有効です";
+            $logging_analysis .= " | 一時有効化: 不要（既に動作中）";
+        } elseif ( $wp_debug === 'true' && $wp_debug_log === 'true' ) {
+            $logging_analysis .= " | 結論: WordPressデバッグログが有効です";
+            $logging_analysis .= " | 一時有効化: 不要（WP設定で有効）";
+        } else {
+            $logging_analysis .= " | 結論: ログ機能が無効状態です";
+            $logging_analysis .= " | 一時有効化: 必要";
+        }
 
         $test_messages = array(
             $debug_info,
+            $logging_analysis,
             "[$timestamp] andW Debug Viewer: テストログメッセージ - INFO レベル",
             "[$timestamp] andW Debug Viewer: テストエラーメッセージ - ERROR レベル",
             "[$timestamp] andW Debug Viewer: テスト警告メッセージ - WARNING レベル"
