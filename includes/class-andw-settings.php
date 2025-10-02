@@ -216,7 +216,12 @@ class Andw_Settings {
             $this->apply_temp_logging_settings();
 
             // ログ有効化の確認メッセージをデバッグログファイルに出力
-            $this->write_debug_log( 'andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] ) );
+            $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
+            $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
+            if ( is_writable( dirname( $log_file ) ) || is_writable( $log_file ) ) {
+                file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
+            }
+            error_log( $log_message );
 
             // 設定が正しく保存されたか確認
             $saved_settings = $this->get_settings();
@@ -246,7 +251,12 @@ class Andw_Settings {
             if ( ! $updated ) {
                 error_log( 'andW Debug Viewer: 設定の保存に失敗しましたが、ログ機能を一時的に有効化します' );
                 $this->apply_temp_logging_settings();
-                $this->write_debug_log( 'andW Debug Viewer: ログ出力を一時的に有効化しました（設定保存に問題がある可能性があります）' );
+                $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
+                $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: ログ出力を一時的に有効化しました（設定保存に問題がある可能性があります）';
+                if ( is_writable( dirname( $log_file ) ) || is_writable( $log_file ) ) {
+                    file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
+                }
+                error_log( $log_message );
 
                 // 強制的に成功とみなす
                 $updated = true;
