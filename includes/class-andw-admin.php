@@ -233,7 +233,9 @@ class Andw_Admin {
         }
 
         $is_network = is_network_admin();
+        error_log( 'andW Debug Viewer: Admin page render - calling get_permissions()' );
         $permissions = $this->plugin->get_permissions( $is_network );
+        error_log( 'andW Debug Viewer: Admin page render - permissions received: ' . print_r( $permissions, true ) );
 
         wp_enqueue_style(
             'andw-admin',
@@ -368,8 +370,16 @@ class Andw_Admin {
         echo '<div class="andw-actions">';
         echo '<button type="button" class="button" id="andw-refresh">' . esc_html__( '再読み込み', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-pause" data-paused="false">' . esc_html__( '一時停止', 'andw-debug-viewer' ) . '</button>';
-        echo '<button type="button" class="button button-secondary" id="andw-clear"' . ( empty( $permissions['can_clear'] ) ? ' disabled' : '' ) . '>' . esc_html__( 'ログをクリア', 'andw-debug-viewer' ) . '</button>';
-        echo '<button type="button" class="button" id="andw-download"' . ( empty( $permissions['can_download'] ) ? ' disabled' : '' ) . '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
+        $clear_disabled = empty( $permissions['can_clear'] ) ? ' disabled' : '';
+        $download_disabled = empty( $permissions['can_download'] ) ? ' disabled' : '';
+
+        error_log( 'andW Debug Viewer: Button rendering - can_clear: ' . ( empty( $permissions['can_clear'] ) ? 'false' : 'true' ) );
+        error_log( 'andW Debug Viewer: Button rendering - can_download: ' . ( empty( $permissions['can_download'] ) ? 'false' : 'true' ) );
+        error_log( 'andW Debug Viewer: Button rendering - clear_disabled: "' . $clear_disabled . '"' );
+        error_log( 'andW Debug Viewer: Button rendering - download_disabled: "' . $download_disabled . '"' );
+
+        echo '<button type="button" class="button button-secondary" id="andw-clear"' . $clear_disabled . '>' . esc_html__( 'ログをクリア', 'andw-debug-viewer' ) . '</button>';
+        echo '<button type="button" class="button" id="andw-download"' . $download_disabled . '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
         echo '</div>';
         echo '</header>';
 
