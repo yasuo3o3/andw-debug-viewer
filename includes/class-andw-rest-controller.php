@@ -37,7 +37,9 @@ class Andw_Rest_Controller extends WP_REST_Controller {
      * @return void
      */
     public function register_routes() {
-        register_rest_route(
+        error_log( 'andW Debug Viewer: REST API register_routes called' );
+
+        $result = register_rest_route(
             self::REST_NAMESPACE,
             '/tail',
             array(
@@ -47,6 +49,8 @@ class Andw_Rest_Controller extends WP_REST_Controller {
                 'args'                => $this->get_tail_args(),
             )
         );
+
+        error_log( 'andW Debug Viewer: REST API register_rest_route /tail result: ' . ( $result ? 'true' : 'false' ) );
 
         register_rest_route(
             self::REST_NAMESPACE,
@@ -102,7 +106,16 @@ class Andw_Rest_Controller extends WP_REST_Controller {
      * @return bool
      */
     public function check_permissions() {
-        return current_user_can( 'manage_options' ) || current_user_can( 'manage_network_options' );
+        $can_manage = current_user_can( 'manage_options' );
+        $can_network = current_user_can( 'manage_network_options' );
+        $result = $can_manage || $can_network;
+
+        error_log( 'andW Debug Viewer: REST API check_permissions called' );
+        error_log( 'andW Debug Viewer: REST API - can_manage_options: ' . ( $can_manage ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: REST API - can_manage_network_options: ' . ( $can_network ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: REST API - permission result: ' . ( $result ? 'true' : 'false' ) );
+
+        return $result;
     }
 
     /**
