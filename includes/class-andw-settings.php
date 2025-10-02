@@ -233,7 +233,7 @@ class Andw_Settings {
             $this->apply_temp_logging_settings();
 
             // ログ有効化の確認メッセージをデバッグログファイルに出力
-            $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
+            $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
             $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
             if ( is_writable( dirname( $log_file ) ) || is_writable( $log_file ) ) {
                 file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
@@ -268,7 +268,7 @@ class Andw_Settings {
             if ( ! $updated ) {
                 error_log( 'andW Debug Viewer: 設定の保存に失敗しましたが、ログ機能を一時的に有効化します' );
                 $this->apply_temp_logging_settings();
-                $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
+                $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
                 $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: ログ出力を一時的に有効化しました（設定保存に問題がある可能性があります）';
                 if ( is_writable( dirname( $log_file ) ) || is_writable( $log_file ) ) {
                     file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
@@ -304,26 +304,69 @@ class Andw_Settings {
      */
     private function apply_temp_logging_settings() {
         if ( $this->is_temp_logging_active() ) {
-            $temp_log_path = WP_CONTENT_DIR . '/debug-temp.log';
-
             error_log( 'andW Debug Viewer: apply_temp_logging_settings() called' );
-            error_log( 'andW Debug Viewer: Setting error_log to: ' . $temp_log_path );
 
-            $result1 = ini_set( 'log_errors', '1' );
-            $result2 = ini_set( 'error_log', $temp_log_path );
+            // 一時セッションファイルを作成
+            $this->create_temp_session_file();
 
-            error_log( 'andW Debug Viewer: ini_set log_errors result: ' . $result1 );
-            error_log( 'andW Debug Viewer: ini_set error_log result: ' . $result2 );
-            error_log( 'andW Debug Viewer: Current error_log setting: ' . ini_get( 'error_log' ) );
-
+            // 標準のdebug.logを使用（ini_setは不要）
+            ini_set( 'log_errors', '1' );
             error_reporting( E_ALL );
 
-            // この行以降は新しいログファイルに出力されるはず
-            error_log( 'andW Debug Viewer: テスト - この行は debug-temp.log に出力されるはずです' );
+            error_log( 'andW Debug Viewer: 一時ログセッションを開始しました' );
+        }
+    }
 
-            // 直接ファイルにも書き込んでテスト
-            $direct_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: 直接書き込みテスト - この行は確実に debug-temp.log に出力されます';
-            file_put_contents( $temp_log_path, $direct_message . PHP_EOL, FILE_APPEND | LOCK_EX );
+    /**
+     * Create temporary session file.
+     *
+     * @return void
+     */
+    private function create_temp_session_file() {
+        $session_data = array(
+            'created_at' => current_time( 'timestamp' ),
+            'expires_at' => current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS ),
+            'session_type' => 'temp_logging',
+            'safe_to_clear' => true,
+        );
+
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        file_put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), LOCK_EX );
+
+        error_log( 'andW Debug Viewer: セッションファイル作成: ' . $session_file );
+    }
+
+    /**
+     * Check if temp session is active.
+     *
+     * @return bool
+     */
+    public function is_temp_session_active() {
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+
+        if ( ! file_exists( $session_file ) ) {
+            return false;
+        }
+
+        $session_data = json_decode( file_get_contents( $session_file ), true );
+        if ( ! $session_data || ! isset( $session_data['expires_at'] ) ) {
+            return false;
+        }
+
+        return $session_data['expires_at'] > current_time( 'timestamp' );
+    }
+
+    /**
+     * Remove expired session file.
+     *
+     * @return void
+     */
+    public function cleanup_expired_session() {
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+
+        if ( file_exists( $session_file ) && ! $this->is_temp_session_active() ) {
+            unlink( $session_file );
+            error_log( 'andW Debug Viewer: 期限切れセッションファイルを削除しました' );
         }
     }
 

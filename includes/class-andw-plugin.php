@@ -192,6 +192,7 @@ class Andw_Plugin {
         error_log( 'andW Debug Viewer: get_permissions() - is_production: ' . ( $is_production ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: get_permissions() - override_active: ' . ( $override_active ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: get_permissions() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - temp_session_active: ' . ( $temp_session_active ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: get_permissions() - allow_mutation: ' . ( $allow_mutation ? 'true' : 'false' ) );
 
         $can_clear    = $allow_mutation;
@@ -203,8 +204,9 @@ class Andw_Plugin {
             'download' => '',
         );
 
-        // 一時ログ有効時は別ファイルなので本番環境でも操作可能
-        if ( $is_production && ! $override_active && ! $temp_logging_active ) {
+        // 一時セッション有効時は本番環境でも操作可能
+        $temp_session_active = $this->settings->is_temp_session_active();
+        if ( $is_production && ! $override_active && ! $temp_session_active ) {
             $can_clear    = false;
             $can_download = false;
             $reasons['clear']    = __( '本番環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。', 'andw-debug-viewer' );

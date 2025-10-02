@@ -22,34 +22,10 @@ class Andw_Log_Reader {
      * @return string
      */
     public function get_log_path() {
-        $settings = new Andw_Settings();
-
-        // 一時ログが有効な場合は別ファイルを使用（安全に操作可能）
-        if ( $settings->is_temp_logging_active() ) {
-            $temp_path = trailingslashit( WP_CONTENT_DIR ) . 'debug-temp.log';
-            error_log( 'andW Debug Viewer: get_log_path() - returning temp log: ' . $temp_path );
-            return $temp_path;
-        }
-
-        // WP_DEBUGが有効な場合は元のdebug.logを参照
-        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
-        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
-
-        if ( $wp_debug_enabled && $wp_debug_log_enabled ) {
-            $debug_path = trailingslashit( WP_CONTENT_DIR ) . self::LOG_RELATIVE_PATH;
-            error_log( 'andW Debug Viewer: get_log_path() - returning debug.log: ' . $debug_path );
-            return $debug_path;
-        }
-
-        // WP_DEBUG=false の場合でも、既存のdebug.logがあれば表示
+        // 常にdebug.logを使用
         $debug_path = trailingslashit( WP_CONTENT_DIR ) . self::LOG_RELATIVE_PATH;
-        if ( file_exists( $debug_path ) ) {
-            error_log( 'andW Debug Viewer: get_log_path() - WP_DEBUG=false but debug.log exists: ' . $debug_path );
-            return $debug_path;
-        }
-
-        error_log( 'andW Debug Viewer: get_log_path() - no log file available' );
-        return null;
+        error_log( 'andW Debug Viewer: get_log_path() - returning debug.log: ' . $debug_path );
+        return $debug_path;
     }
 
     /**
