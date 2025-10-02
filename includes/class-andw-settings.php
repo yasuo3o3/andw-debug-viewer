@@ -267,6 +267,10 @@ class Andw_Settings {
             // とりあえず一時的にログを出力して、UIを正しく表示させる
             if ( ! $updated ) {
                 error_log( 'andW Debug Viewer: 設定の保存に失敗しましたが、ログ機能を一時的に有効化します' );
+
+                // 設定保存が失敗してもセッションファイルを強制作成
+                $this->create_temp_session_file();
+
                 $this->apply_temp_logging_settings();
                 $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
                 $log_message = '[' . date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: ログ出力を一時的に有効化しました（設定保存に問題がある可能性があります）';
@@ -303,8 +307,11 @@ class Andw_Settings {
      * @return void
      */
     private function apply_temp_logging_settings() {
+        error_log( 'andW Debug Viewer: apply_temp_logging_settings() called' );
+        error_log( 'andW Debug Viewer: is_temp_logging_active(): ' . ( $this->is_temp_logging_active() ? 'true' : 'false' ) );
+
         if ( $this->is_temp_logging_active() ) {
-            error_log( 'andW Debug Viewer: apply_temp_logging_settings() called' );
+            error_log( 'andW Debug Viewer: Creating session file...' );
 
             // 一時セッションファイルを作成
             $this->create_temp_session_file();
@@ -314,6 +321,8 @@ class Andw_Settings {
             error_reporting( E_ALL );
 
             error_log( 'andW Debug Viewer: 一時ログセッションを開始しました' );
+        } else {
+            error_log( 'andW Debug Viewer: Temp logging not active, session file not created' );
         }
     }
 
@@ -323,6 +332,8 @@ class Andw_Settings {
      * @return void
      */
     private function create_temp_session_file() {
+        error_log( 'andW Debug Viewer: create_temp_session_file() called' );
+
         $session_data = array(
             'created_at' => current_time( 'timestamp' ),
             'expires_at' => current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS ),
@@ -331,9 +342,18 @@ class Andw_Settings {
         );
 
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
-        file_put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), LOCK_EX );
 
-        error_log( 'andW Debug Viewer: セッションファイル作成: ' . $session_file );
+        error_log( 'andW Debug Viewer: Session file path: ' . $session_file );
+        error_log( 'andW Debug Viewer: WP_CONTENT_DIR: ' . WP_CONTENT_DIR );
+        error_log( 'andW Debug Viewer: WP_CONTENT_DIR writable: ' . ( is_writable( WP_CONTENT_DIR ) ? 'true' : 'false' ) );
+
+        $result = file_put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), LOCK_EX );
+
+        if ( $result !== false ) {
+            error_log( 'andW Debug Viewer: セッションファイル作成成功: ' . $session_file . ' (' . $result . ' bytes)' );
+        } else {
+            error_log( 'andW Debug Viewer: セッションファイル作成失敗: ' . $session_file );
+        }
     }
 
     /**

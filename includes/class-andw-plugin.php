@@ -185,6 +185,7 @@ class Andw_Plugin {
         $is_production = ( 'production' === $environment );
         $override_active = $this->settings->is_production_override_active();
         $temp_logging_active = $this->settings->is_temp_logging_active();
+        $temp_session_active = $this->settings->is_temp_session_active();
         $allow_mutation  = ! $is_production || $override_active;
 
         // デバッグ出力
@@ -205,7 +206,6 @@ class Andw_Plugin {
         );
 
         // 一時セッション有効時は本番環境でも操作可能
-        $temp_session_active = $this->settings->is_temp_session_active();
         if ( $is_production && ! $override_active && ! $temp_session_active ) {
             $can_clear    = false;
             $can_download = false;
