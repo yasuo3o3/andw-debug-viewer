@@ -521,30 +521,41 @@ class Andw_Admin {
         }
 
         echo '<div class="andw-control-row">';
+
+        // ステータス表示
+        if ( $temp_logging_active ) {
+            echo '<div class="andw-status-display" data-expires="' . esc_attr( $permissions['temp_logging_expires'] ) . '" style="background: #d63638; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
+            echo '<strong>🟢 一時ログ出力 有効中</strong>';
+            if ( ! empty( $permissions['temp_logging_expires'] ) ) {
+                $remaining = $permissions['temp_logging_expires'] - current_time( 'timestamp' );
+                $minutes = max( 0, floor( $remaining / 60 ) );
+                $seconds = max( 0, $remaining % 60 );
+                echo ' - 残り時間: <span class="andw-countdown" id="temp-logging-countdown">' . sprintf( '%02d:%02d', $minutes, $seconds ) . '</span>';
+            }
+            echo '</div><br>';
+        } else {
+            echo '<div style="background: #72aee6; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
+            echo '<strong>⭕ 一時ログ出力 無効</strong> - 必要に応じて有効化してください';
+            echo '</div><br>';
+        }
+
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block; margin-right:10px;">';
         wp_nonce_field( 'andw_toggle_temp_logging' );
         echo '<input type="hidden" name="action" value="andw_toggle_temp_logging">';
         if ( $temp_logging_active ) {
             echo '<input type="hidden" name="state" value="disable">';
-            submit_button( __( '一時ログ出力を停止', 'andw-debug-viewer' ), 'secondary', 'submit', false );
+            submit_button( __( '⏹️ 一時ログ出力を停止', 'andw-debug-viewer' ), 'delete', 'submit', false );
         } else {
             echo '<input type="hidden" name="state" value="enable">';
-            submit_button( __( '15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary', 'submit', false );
+            submit_button( __( '▶️ 15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary', 'submit', false );
         }
         echo '</form>';
 
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;">';
         wp_nonce_field( 'andw_test_log_output' );
         echo '<input type="hidden" name="action" value="andw_test_log_output">';
-        submit_button( __( 'テスト用ログ出力', 'andw-debug-viewer' ), 'secondary', 'submit', false );
+        submit_button( __( '🧪 テスト用ログ出力', 'andw-debug-viewer' ), 'secondary', 'submit', false );
         echo '</form>';
-
-        if ( $temp_logging_active && ! empty( $permissions['temp_logging_expires'] ) ) {
-            echo '<div class="andw-status-display" data-expires="' . esc_attr( $permissions['temp_logging_expires'] ) . '">';
-            echo '<span class="andw-status-active">' . esc_html__( '有効中:', 'andw-debug-viewer' ) . '</span> ';
-            echo '<span class="andw-countdown" id="temp-logging-countdown"></span>';
-            echo '</div>';
-        }
 
         echo '</div>';
         echo '</div>';
