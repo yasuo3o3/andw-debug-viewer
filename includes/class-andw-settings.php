@@ -296,9 +296,22 @@ class Andw_Settings {
      */
     private function apply_temp_logging_settings() {
         if ( $this->is_temp_logging_active() ) {
-            ini_set( 'log_errors', '1' );
-            ini_set( 'error_log', WP_CONTENT_DIR . '/debug-temp.log' );
+            $temp_log_path = WP_CONTENT_DIR . '/debug-temp.log';
+
+            error_log( 'andW Debug Viewer: apply_temp_logging_settings() called' );
+            error_log( 'andW Debug Viewer: Setting error_log to: ' . $temp_log_path );
+
+            $result1 = ini_set( 'log_errors', '1' );
+            $result2 = ini_set( 'error_log', $temp_log_path );
+
+            error_log( 'andW Debug Viewer: ini_set log_errors result: ' . $result1 );
+            error_log( 'andW Debug Viewer: ini_set error_log result: ' . $result2 );
+            error_log( 'andW Debug Viewer: Current error_log setting: ' . ini_get( 'error_log' ) );
+
             error_reporting( E_ALL );
+
+            // この行以降は新しいログファイルに出力されるはず
+            error_log( 'andW Debug Viewer: テスト - この行は debug-temp.log に出力されるはずです' );
         }
     }
 
