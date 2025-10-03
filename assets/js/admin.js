@@ -143,9 +143,14 @@
         if (!clearBtn || clearBtn.disabled) {
             return;
         }
-        const confirmMessage = strings.clearConfirm || __('本当に debug.log をクリアしますか？', 'andw-debug-viewer');
-        if (!window.confirm(confirmMessage)) {
-            return;
+
+        // 一時環境の場合は確認ダイアログをスキップ
+        const isTempEnvironment = data.environment && data.environment.is_temp_environment;
+        if (!isTempEnvironment) {
+            const confirmMessage = strings.clearConfirm || __('本当に debug.log をクリアしますか？', 'andw-debug-viewer');
+            if (!window.confirm(confirmMessage)) {
+                return;
+            }
         }
         apiFetch({
             path: data.restUrl + 'clear',

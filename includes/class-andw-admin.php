@@ -939,6 +939,7 @@ class Andw_Admin {
                 'label' => ! empty( $permissions['wp_debug_enabled'] ) ? 'DEBUG MODE' : 'PRODUCTION',
                 'slug'  => ! empty( $permissions['wp_debug_enabled'] ) ? 'debug' : 'production',
                 'wp_debug_enabled' => ! empty( $permissions['wp_debug_enabled'] ),
+                'is_temp_environment' => ! empty( $permissions['temp_logging_active'] ) || ! empty( $permissions['temp_session_active'] ),
             ),
             'isNetwork' => (bool) $is_network,
             'strings'   => array(
