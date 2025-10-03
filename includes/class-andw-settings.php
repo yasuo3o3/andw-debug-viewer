@@ -420,17 +420,29 @@ class Andw_Settings {
      * @return void
      */
     private function handle_temp_logging_expiration() {
-        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
-        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+        error_log( 'andW Debug Viewer: Temporary logging expiration cleanup started' );
 
-        error_log( 'andW Debug Viewer: Temporary logging expired' );
+        // JSONファイルから一時ログ設定を削除
+        $settings = $this->get_settings();
+        $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
 
-        // 一時ログファイルが存在する場合は削除
+        if ( $was_temp_active ) {
+            error_log( 'andW Debug Viewer: Clearing temporary logging settings from JSON' );
+            $settings['temp_logging_enabled'] = false;
+            $settings['temp_logging_expiration'] = 0;
+
+            $updated = update_option( self::OPTION_NAME, $settings, false );
+            error_log( 'andW Debug Viewer: JSON cleanup result: ' . ( $updated ? 'SUCCESS' : 'FAILED' ) );
+        }
+
+        // 古いdebug-temp.logファイルがあれば削除（後方互換性）
         $temp_log_file = WP_CONTENT_DIR . '/debug-temp.log';
         if ( file_exists( $temp_log_file ) ) {
             unlink( $temp_log_file );
-            error_log( 'andW Debug Viewer: Cleaned up temporary log file (deleted): debug-temp.log' );
+            error_log( 'andW Debug Viewer: Cleaned up legacy temporary log file: debug-temp.log' );
         }
+
+        error_log( 'andW Debug Viewer: Temporary logging expiration cleanup completed' );
     }
 
     /**
