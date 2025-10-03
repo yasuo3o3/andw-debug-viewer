@@ -804,7 +804,7 @@ class Andw_Admin {
             submit_button( __( '一時許可を解除', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
             echo '</form>';
         } else {
-            echo '<p style="margin: 0 0 8px; color: #856404; font-size: 13px;">WP_DEBUG=false の環境では、誤操作防止のため「ログをクリア」「ログをダウンロード」は既定で無効です。</p>';
+            echo '<p style="margin: 0 0 8px; color: #856404; font-size: 13px;">WP_DEBUG=True の環境では、誤操作防止のため「ログをクリア」「ログをダウンロード」は既定で無効です。</p>';
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0;">';
             wp_nonce_field( 'andw_toggle_prod_override' );
             echo '<input type="hidden" name="action" value="andw_toggle_prod_override">';
