@@ -709,18 +709,46 @@ class Andw_Admin {
 
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
 
-        // ログ機能が無効の場合のみ表示
-        if ( ! $actual_logging_works ) {
-            echo '<div class="andw-temp-logging-compact" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin: 10px 0;">';
+        // 常時状態を表示
+        echo '<div class="andw-temp-logging-compact" style="border-radius: 4px; padding: 10px; margin: 10px 0;">';
+
+        if ( $temp_logging_active && $expires ) {
+            // 一時ログ有効中
+            echo '<div style="background: #d63638; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px;">';
+            echo '<strong>🟢 一時ログ出力 有効中</strong> - ' . esc_html( $expires ) . ' まで';
+            echo '</div>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0;">';
+            wp_nonce_field( 'andw_toggle_temp_logging' );
+            echo '<input type="hidden" name="action" value="andw_toggle_temp_logging">';
+            echo '<input type="hidden" name="state" value="disable">';
+            echo '<input type="hidden" name="current_tab" value="viewer">';
+            submit_button( __( '⏹️ 一時ログ出力を停止', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
+            echo '</form>';
+        } elseif ( $debug_log_exists ) {
+            // debug.log ファイル存在
+            echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px;">';
+            echo '<strong>✅ debug.log ファイル 利用可能</strong> - 既存のログファイルが見つかりました';
+            echo '</div>';
+        } elseif ( $wordpress_debug_log_enabled ) {
+            // WP_DEBUG_LOG=true
+            echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px;">';
+            echo '<strong>✅ WordPress デバッグログ 有効</strong> - wp-config.php で WP_DEBUG_LOG が有効';
+            echo '</div>';
+        } else {
+            // ログ機能無効
+            echo '<div style="background: #f9f9f9; border: 1px solid #ddd;">';
             echo '<p style="margin: 0 0 8px; font-size: 14px;"><strong>⚠️ ログ機能が無効です</strong> - debug.log ファイルが存在せず、WP_DEBUG_LOG も無効になっています。</p>';
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0;">';
             wp_nonce_field( 'andw_toggle_temp_logging' );
             echo '<input type="hidden" name="action" value="andw_toggle_temp_logging">';
             echo '<input type="hidden" name="state" value="enable">';
+            echo '<input type="hidden" name="current_tab" value="viewer">';
             submit_button( __( '▶️ 15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary small', 'submit', false );
             echo '</form>';
             echo '</div>';
         }
+
+        echo '</div>';
     }
 
     /**
@@ -744,6 +772,7 @@ class Andw_Admin {
             wp_nonce_field( 'andw_toggle_prod_override' );
             echo '<input type="hidden" name="action" value="andw_toggle_prod_override">';
             echo '<input type="hidden" name="state" value="disable">';
+            echo '<input type="hidden" name="current_tab" value="viewer">';
             submit_button( __( '一時許可を解除', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
             echo '</form>';
         } else {
@@ -752,6 +781,7 @@ class Andw_Admin {
             wp_nonce_field( 'andw_toggle_prod_override' );
             echo '<input type="hidden" name="action" value="andw_toggle_prod_override">';
             echo '<input type="hidden" name="state" value="enable">';
+            echo '<input type="hidden" name="current_tab" value="viewer">';
             submit_button( __( '⚠️ 15分間危険な操作を許可', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
             echo '</form>';
         }
@@ -803,10 +833,18 @@ class Andw_Admin {
         $after_permissions = $this->plugin->get_permissions();
         error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行後の権限: ' . print_r( $after_permissions, true ) );
 
+        // リダイレクト先を元のタブに戻す
+        $current_tab = 'viewer';  // デフォルトはビューアータブ
+        if ( isset( $_POST['current_tab'] ) ) {
+            $current_tab = sanitize_key( $_POST['current_tab'] );
+        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
+            $current_tab = 'settings';
+        }
+
         $redirect = add_query_arg(
             array(
                 'page'            => 'andw-debug-viewer',
-                'tab'             => 'settings',
+                'tab'             => $current_tab,
                 'andw_message' => $message,
             ),
             is_network_admin() ? network_admin_url( 'admin.php' ) : admin_url( 'admin.php' )
@@ -943,10 +981,18 @@ class Andw_Admin {
 
         error_log( 'andW Debug Viewer: Final message: ' . $message );
 
+        // リダイレクト先を元のタブに戻す（リファラーから判定）
+        $current_tab = 'viewer';  // デフォルトはビューアータブ
+        if ( isset( $_POST['current_tab'] ) ) {
+            $current_tab = sanitize_key( $_POST['current_tab'] );
+        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
+            $current_tab = 'settings';
+        }
+
         $redirect_url = add_query_arg(
             array(
                 'page' => 'andw-debug-viewer',
-                'tab'  => 'settings',
+                'tab'  => $current_tab,
                 'temp_logging_message' => $message,
             ),
             admin_url( 'admin.php' )
