@@ -761,15 +761,13 @@ class Andw_Admin {
         submit_button( __( '🧪 テスト用ログ出力', 'andw-debug-viewer' ), 'secondary small', 'submit', false, array( 'style' => 'margin: 0;' ) );
         echo '</form>';
 
-        // 期限切れ処理テスト（一時ログ有効時または無効時）
-        if ( ! $actual_logging_works || $temp_logging_active ) {
-            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0; display: inline-block;">';
-            wp_nonce_field( 'andw_test_expiration' );
-            echo '<input type="hidden" name="action" value="andw_test_expiration">';
-            echo '<input type="hidden" name="current_tab" value="viewer">';
-            submit_button( __( '🔬 期限切れ処理テスト', 'andw-debug-viewer' ), 'secondary small', 'submit', false, array( 'style' => 'margin: 0;' ) );
-            echo '</form>';
-        }
+        // 期限切れ処理テスト（常時表示 - 一時機能の期限切れテスト用）
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0; display: inline-block;">';
+        wp_nonce_field( 'andw_test_expiration' );
+        echo '<input type="hidden" name="action" value="andw_test_expiration">';
+        echo '<input type="hidden" name="current_tab" value="viewer">';
+        submit_button( __( '🔬 期限切れ処理テスト', 'andw-debug-viewer' ), 'secondary small', 'submit', false, array( 'style' => 'margin: 0;' ) );
+        echo '</form>';
 
         echo '</div>';
         echo '</div>';
