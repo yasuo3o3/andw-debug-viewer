@@ -554,13 +554,36 @@ class Andw_Admin {
         error_log( 'andW Debug Viewer: render_temp_logging_controls() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: render_temp_logging_controls() - temp_session_active: ' . ( $temp_session_active ? 'true' : 'false' ) );
 
-        // 実際のログ機能状態を確認（セッション有効時も含む）
-        $actual_logging_works = ( ini_get( 'log_errors' ) && ini_get( 'error_log' ) ) ||
-                               ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) ||
-                               $temp_logging_active ||
-                               $temp_session_active;
+        // WordPress debug.log の実際の状態を確認（プラグイン機能は除く）
+        $wordpress_debug_active = ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG );
 
+        // debug.log ファイルが実際に使用されているかチェック
+        $debug_log_path = WP_CONTENT_DIR . '/debug.log';
+        $debug_log_working = false;
+
+        if ( $wordpress_debug_active ) {
+            // WordPressのデバッグログが有効な場合
+            $debug_log_working = true;
+        } elseif ( file_exists( $debug_log_path ) && filesize( $debug_log_path ) > 0 ) {
+            // debug.log ファイルが存在し、内容がある場合（最近使われている可能性）
+            $file_mtime = filemtime( $debug_log_path );
+            $one_hour_ago = time() - 3600;
+            if ( $file_mtime > $one_hour_ago ) {
+                $debug_log_working = true;
+            }
+        }
+
+        // 最終的な判定（プラグインの機能は含める）
+        $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
+
+        error_log( 'andW Debug Viewer: render_temp_logging_controls() - wordpress_debug_active: ' . ( $wordpress_debug_active ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: render_temp_logging_controls() - debug_log_working: ' . ( $debug_log_working ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: render_temp_logging_controls() - actual_logging_works: ' . ( $actual_logging_works ? 'true' : 'false' ) );
+        if ( file_exists( $debug_log_path ) ) {
+            error_log( 'andW Debug Viewer: render_temp_logging_controls() - debug.log exists, size: ' . filesize( $debug_log_path ) . ' bytes, mtime: ' . filemtime( $debug_log_path ) );
+        } else {
+            error_log( 'andW Debug Viewer: render_temp_logging_controls() - debug.log does not exist' );
+        }
 
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
@@ -594,7 +617,11 @@ class Andw_Admin {
                 echo '</div><br>';
             } else {
                 echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
-                echo '<strong>✅ ログ機能 利用可能</strong> - システム設定により既に有効化されています';
+                if ( $wordpress_debug_active ) {
+                    echo '<strong>✅ WordPress デバッグログ 有効</strong> - wp-config.php で WP_DEBUG_LOG が有効化されています';
+                } else {
+                    echo '<strong>✅ debug.log ファイル 検出</strong> - 最近使用された形跡があります（1時間以内）';
+                }
                 echo '</div><br>';
             }
         } else {
