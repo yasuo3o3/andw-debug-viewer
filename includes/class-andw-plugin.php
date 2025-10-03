@@ -82,12 +82,13 @@ class Andw_Plugin {
      * @return void
      */
     public function init() {
-        error_log( 'andW Debug Viewer: Plugin init() called' );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: Plugin init() called' );
 
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         add_action( 'rest_api_init', array( $this->rest_controller, 'register_routes' ) );
 
-        error_log( 'andW Debug Viewer: Plugin hooks registered' );
+        // error_log( 'andW Debug Viewer: Plugin hooks registered' );
         add_action( 'admin_menu', array( $this->admin, 'register_menu' ) );
         add_action( 'network_admin_menu', array( $this->admin, 'register_network_menu' ) );
         add_action( 'admin_init', array( $this->admin, 'register_settings' ) );

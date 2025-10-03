@@ -37,7 +37,8 @@ class Andw_Rest_Controller extends WP_REST_Controller {
      * @return void
      */
     public function register_routes() {
-        error_log( 'andW Debug Viewer: REST API register_routes called' );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: REST API register_routes called' );
 
         $result = register_rest_route(
             self::REST_NAMESPACE,
@@ -50,7 +51,7 @@ class Andw_Rest_Controller extends WP_REST_Controller {
             )
         );
 
-        error_log( 'andW Debug Viewer: REST API register_rest_route /tail result: ' . ( $result ? 'true' : 'false' ) );
+        // error_log( 'andW Debug Viewer: REST API register_rest_route /tail result: ' . ( $result ? 'true' : 'false' ) );
 
         register_rest_route(
             self::REST_NAMESPACE,

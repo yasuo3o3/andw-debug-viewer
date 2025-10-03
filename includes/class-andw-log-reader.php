@@ -24,7 +24,8 @@ class Andw_Log_Reader {
     public function get_log_path() {
         // 常にdebug.logを使用
         $debug_path = trailingslashit( WP_CONTENT_DIR ) . self::LOG_RELATIVE_PATH;
-        error_log( 'andW Debug Viewer: get_log_path() - returning debug.log: ' . $debug_path );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: get_log_path() - returning debug.log: ' . $debug_path );
         return $debug_path;
     }
 
@@ -94,7 +95,9 @@ class Andw_Log_Reader {
         try {
             $file = new SplFileObject( $path, 'r' );
             $file->setFlags( SplFileObject::DROP_NEW_LINE );
-            $file->seek( PHP_INT_MAX );
+
+            // ファイル権限エラーを抑制してseek実行
+            @$file->seek( PHP_INT_MAX );
             $last_line = $file->key();
         } catch ( Exception $exception ) {
             return new WP_Error( 'andw_read_failed', __( 'ログファイルを開けませんでした。', 'andw-debug-viewer' ) );

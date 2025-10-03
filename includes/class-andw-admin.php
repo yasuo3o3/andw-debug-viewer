@@ -233,9 +233,10 @@ class Andw_Admin {
         }
 
         $is_network = is_network_admin();
-        error_log( 'andW Debug Viewer: Admin page render - calling get_permissions()' );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: Admin page render - calling get_permissions()' );
         $permissions = $this->plugin->get_permissions( $is_network );
-        error_log( 'andW Debug Viewer: Admin page render - permissions received: ' . print_r( $permissions, true ) );
+        // error_log( 'andW Debug Viewer: Admin page render - permissions received: ' . print_r( $permissions, true ) );
 
         wp_enqueue_style(
             'andw-admin',
@@ -385,14 +386,8 @@ class Andw_Admin {
         $clear_disabled = empty( $permissions['can_clear'] ) ? ' disabled' : '';
         $download_disabled = empty( $permissions['can_download'] ) ? ' disabled' : '';
 
-        error_log( 'andW Debug Viewer: Button rendering - 権限詳細: ' . print_r( $permissions, true ) );
-        error_log( 'andW Debug Viewer: Button rendering - can_clear: ' . ( empty( $permissions['can_clear'] ) ? 'false' : 'true' ) );
-        error_log( 'andW Debug Viewer: Button rendering - can_download: ' . ( empty( $permissions['can_download'] ) ? 'false' : 'true' ) );
-        error_log( 'andW Debug Viewer: Button rendering - clear_disabled: "' . $clear_disabled . '"' );
-        error_log( 'andW Debug Viewer: Button rendering - download_disabled: "' . $download_disabled . '"' );
-        error_log( 'andW Debug Viewer: Button rendering - is_production_mode: ' . ( ! empty( $permissions['is_production_mode'] ) ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: Button rendering - override_active: ' . ( ! empty( $permissions['override_active'] ) ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: Button rendering - temp_session_active: ' . ( ! empty( $permissions['temp_session_active'] ) ? 'true' : 'false' ) );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: Button rendering - 権限詳細: ' . print_r( $permissions, true ) );
 
         echo '<button type="button" class="button button-secondary" id="andw-clear"' . $clear_disabled . '>' . esc_html__( 'ログをクリア', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-download"' . $download_disabled . '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
