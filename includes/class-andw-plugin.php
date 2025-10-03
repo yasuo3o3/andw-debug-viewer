@@ -261,9 +261,9 @@ class Andw_Plugin {
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $temp_session_active = $this->settings->is_temp_session_active();
 
-        // WP_DEBUG_LOG=true時は override_active が必要
+        // WP_DEBUG_LOG=true時は override_active のみで判定（temp_session_activeは除外）
         if ( $wp_debug_log_enabled ) {
-            $allow_mutation = $override_active || $temp_session_active;
+            $allow_mutation = $override_active;
         } else {
             // WP_DEBUG_LOG=false時: debug.logが存在すれば常に有効
             $debug_log_exists = file_exists( WP_CONTENT_DIR . '/debug.log' );
