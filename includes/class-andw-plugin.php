@@ -244,7 +244,6 @@ class Andw_Plugin {
             'wp_debug_enabled'           => $wp_debug_enabled,
             'is_debug_mode'              => $is_debug_mode,
             'is_production_mode'         => $is_production_mode,
-            'is_production'              => $is_production_mode,  // 後方互換性のため
             'override_active'            => $override_active,
             'override_expires'           => $override_active ? (int) $settings['production_temp_expiration'] : 0,
             'temp_logging_active'        => $temp_logging_active,
