@@ -580,14 +580,9 @@ class Andw_Admin {
      * @return void
      */
     private function render_temp_logging_controls( array $permissions ) {
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - permissions: ' . print_r( $permissions, true ) );
-
         $temp_logging_active = ! empty( $permissions['temp_logging_active'] );
         $temp_session_active = ! empty( $permissions['temp_session_active'] );
         $expires = ! empty( $permissions['temp_logging_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['temp_logging_expires'] ) : '';
-
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - temp_session_active: ' . ( $temp_session_active ? 'true' : 'false' ) );
 
         // WordPress debug.log の状態を確認
         $debug_log_path = WP_CONTENT_DIR . '/debug.log';
@@ -604,9 +599,6 @@ class Andw_Admin {
 
             // 初回ログを出力してファイルを作成
             $init_message = '[' . wp_date( 'Y-m-d H:i:s' ) . '] andW Debug Viewer: WordPress debug log initialized (WP_DEBUG_LOG=true detected)';
-            error_log( $init_message );
-
-            error_log( 'andW Debug Viewer: Created initial debug.log file for WP_DEBUG_LOG=true environment' );
 
             // WordPressデバッグセッションファイルを作成
             $settings_handler = $this->plugin->get_settings_handler();
@@ -619,13 +611,7 @@ class Andw_Admin {
         // 最終的な判定（プラグインの機能は含める）
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
 
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - debug_log_exists: ' . ( $debug_log_exists ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - wordpress_debug_log_enabled: ' . ( $wordpress_debug_log_enabled ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - debug_log_working: ' . ( $debug_log_working ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: render_temp_logging_controls() - actual_logging_works: ' . ( $actual_logging_works ? 'true' : 'false' ) );
-        if ( $debug_log_exists ) {
-            error_log( 'andW Debug Viewer: render_temp_logging_controls() - debug.log exists, size: ' . filesize( $debug_log_path ) . ' bytes' );
-        }
+        // ログ状態の記録（error_log削除済み）
 
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
@@ -970,48 +956,33 @@ class Andw_Admin {
      * @return void
      */
     public function handle_temp_logging_toggle() {
-        // デバッグ情報を最初に出力
-        error_log( 'andW Debug Viewer: handle_temp_logging_toggle() started' );
-
         if ( ! current_user_can( 'manage_options' ) ) {
-            error_log( 'andW Debug Viewer: Permission denied - user cannot manage_options' );
             wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! isset( $_POST['_wpnonce'] ) ) {
-            error_log( 'andW Debug Viewer: Nonce missing from POST data' );
             wp_die( esc_html__( 'ナンスが見つかりません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'andw_toggle_temp_logging' ) ) {
-            error_log( 'andW Debug Viewer: Nonce verification failed' );
             wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
         }
 
         $state = isset( $_POST['state'] ) ? sanitize_key( $_POST['state'] ) : '';
-        error_log( 'andW Debug Viewer: State received: ' . $state );
 
         if ( empty( $state ) ) {
-            error_log( 'andW Debug Viewer: State is empty' );
             $message = 'temp_logging_error';
         } else {
             $settings = $this->plugin->get_settings_handler();
-            error_log( 'andW Debug Viewer: Settings handler retrieved successfully' );
 
             if ( 'enable' === $state ) {
-                error_log( 'andW Debug Viewer: Attempting to enable temp logging' );
                 $success = $settings->enable_temp_logging();
-                error_log( 'andW Debug Viewer: enable_temp_logging() returned: ' . ( $success ? 'true' : 'false' ) );
                 $message = $success ? 'temp_logging_enabled' : 'temp_logging_error';
             } else {
-                error_log( 'andW Debug Viewer: Attempting to disable temp logging' );
                 $success = $settings->disable_temp_logging();
-                error_log( 'andW Debug Viewer: disable_temp_logging() returned: ' . ( $success ? 'true' : 'false' ) );
                 $message = $success ? 'temp_logging_disabled' : 'temp_logging_error';
             }
         }
-
-        error_log( 'andW Debug Viewer: Final message: ' . $message );
 
         // リダイレクト先を元のタブに戻す（リファラーから判定）
         $current_tab = 'viewer';  // デフォルトはビューアータブ
@@ -1033,7 +1004,6 @@ class Andw_Admin {
             admin_url( 'admin.php' )
         );
 
-        error_log( 'andW Debug Viewer: Redirecting to: ' . $redirect_url );
         wp_safe_redirect( $redirect_url );
         exit;
     }
@@ -1130,9 +1100,8 @@ class Andw_Admin {
         );
 
         foreach ( $test_messages as $message ) {
-            error_log( $message );
             // ファイルに直接書き込みも試行
-            if ( is_writable( dirname( $log_file ) ) ) {
+            if ( wp_is_writable( dirname( $log_file ) ) ) {
                 file_put_contents( $log_file, $message . PHP_EOL, FILE_APPEND | LOCK_EX );
             }
         }
@@ -1167,8 +1136,6 @@ class Andw_Admin {
      * @return void
      */
     public function ajax_toggle_temp_logging() {
-        error_log( 'andW Debug Viewer: ajax_toggle_temp_logging() called' );
-
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( json_encode( array( 'success' => false, 'message' => 'Permission denied' ) ) );
         }
