@@ -368,6 +368,7 @@ class Andw_Admin {
 
         if ( ! empty( $permissions['override_active'] ) && ! empty( $permissions['override_expires'] ) ) {
             $expires = wp_date( 'Y/m/d H:i', (int) $permissions['override_expires'] );
+            /* translators: %s: expiration date/time. */
             echo '<span class="andw-override-info">' . esc_html( sprintf( __( '一時許可中: %s まで', 'andw-debug-viewer' ), $expires ) ) . '</span>';
         }
 
@@ -542,6 +543,7 @@ class Andw_Admin {
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( 'WP_DEBUG=false 環境で「ログを削除」「ログをダウンロード」の一時許可', 'andw-debug-viewer' ) . '</h2>';
         if ( $override_active && $expires ) {
+            /* translators: %s: expiration date/time. */
             echo '<p>' . esc_html( sprintf( __( '現在、一時許可が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
         } else {
             echo '<p>' . esc_html__( 'WP_DEBUG=false の環境では既定でクリア／ダウンロードは無効です。必要な場合のみ15分間の一時許可を発行できます。', 'andw-debug-viewer' ) . '</p>';
@@ -629,6 +631,7 @@ class Andw_Admin {
         echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
         if ( $actual_logging_works ) {
             if ( $temp_logging_active && $expires ) {
+                /* translators: %s: expiration date/time. */
                 echo '<p>' . esc_html( sprintf( __( '現在、一時ログ出力が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
             } elseif ( $debug_log_exists ) {
                 echo '<p>' . esc_html__( 'debug.log ファイルが存在するため、ログ機能を利用できます。過去のログも含めて閲覧可能です。', 'andw-debug-viewer' ) . '</p>';
