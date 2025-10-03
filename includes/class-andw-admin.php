@@ -413,8 +413,9 @@ class Andw_Admin {
         }
         echo '</footer>';
 
-        // 一時許可ブロック（ログより下に配置、扱いにくく）
-        if ( ! empty( $permissions['is_production_mode'] ) ) {
+        // 危険操作ブロック（WP_DEBUG_LOG=true時こそ保護が必要）
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+        if ( $wp_debug_log_enabled ) {
             $this->render_production_override_controls_compact( $permissions );
         }
 
@@ -936,7 +937,7 @@ class Andw_Admin {
                 'label' => ! empty( $permissions['wp_debug_enabled'] ) ? 'DEBUG MODE' : 'PRODUCTION',
                 'slug'  => ! empty( $permissions['wp_debug_enabled'] ) ? 'debug' : 'production',
                 'wp_debug_enabled' => ! empty( $permissions['wp_debug_enabled'] ),
-                'is_temp_environment' => ! empty( $permissions['temp_logging_active'] ) || ! empty( $permissions['temp_session_active'] ),
+                'is_temp_environment' => ! empty( $permissions['temp_logging_active'] ),
             ),
             'isNetwork' => (bool) $is_network,
             'strings'   => array(

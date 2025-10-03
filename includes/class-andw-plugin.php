@@ -249,15 +249,24 @@ class Andw_Plugin {
         $settings      = $this->get_settings();
         $environment   = wp_get_environment_type();
 
-        // WP_DEBUG ベースでの安全性判定（より合理的）
+        // WP_DEBUG_LOG ベースでの安全性判定
         $wp_debug_enabled = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
-        $is_debug_mode = $wp_debug_enabled;
-        $is_production_mode = ! $is_debug_mode;  // WP_DEBUG=false を本番モードとして扱う
+        $wp_debug_log_enabled = ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG );
+
+        // WP_DEBUG_LOG=true時は保護が必要（既存ログを保護）
+        $is_debug_mode = $wp_debug_enabled && ! $wp_debug_log_enabled;  // WP_DEBUG=true かつ WP_DEBUG_LOG=false
+        $is_production_mode = ! $is_debug_mode;
 
         $override_active = $this->settings->is_production_override_active();
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $temp_session_active = $this->settings->is_temp_session_active();
-        $allow_mutation  = $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
+
+        // WP_DEBUG_LOG=true時は override_active が必要
+        if ( $wp_debug_log_enabled ) {
+            $allow_mutation = $override_active || $temp_session_active;
+        } else {
+            $allow_mutation = $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
+        }
 
         // ログ出力を完全に抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
         // static $debug_logged = false;
