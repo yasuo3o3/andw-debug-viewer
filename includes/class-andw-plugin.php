@@ -206,6 +206,16 @@ class Andw_Plugin {
         $can_clear    = $allow_mutation;
         $can_download = $allow_mutation && ! empty( $settings['enable_download'] );
 
+        // セッションファイルからの権限情報も考慮
+        $session = $this->settings->get_active_session();
+        if ( $session && isset( $session['permissions'] ) ) {
+            $session_safe_to_download = ! empty( $session['permissions']['safe_to_download'] );
+            if ( $session_safe_to_download && $allow_mutation ) {
+                $can_download = true; // セッションでダウンロード許可されている場合は強制的に有効
+                error_log( 'andW Debug Viewer: Download enabled by session permissions' );
+            }
+        }
+
         $download_globally_disabled = empty( $settings['enable_download'] );
         $reasons = array(
             'clear'    => '',

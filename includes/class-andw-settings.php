@@ -51,6 +51,13 @@ class Andw_Settings {
 
         $settings = wp_parse_args( $settings, $defaults );
 
+        // 既存のインストールでenable_downloadがfalseの場合、trueに更新
+        if ( ! $settings['enable_download'] ) {
+            $settings['enable_download'] = true;
+            update_option( self::OPTION_NAME, $settings, false );
+            error_log( 'andW Debug Viewer: Updated enable_download setting to true' );
+        }
+
         if ( $settings['production_temp_expiration'] && $this->is_production_override_expired( (int) $settings['production_temp_expiration'] ) ) {
             $settings['production_temp_expiration'] = 0;
             update_option( self::OPTION_NAME, $settings, false );
