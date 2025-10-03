@@ -388,7 +388,7 @@ class Andw_Admin {
         error_log( 'andW Debug Viewer: Button rendering - can_download: ' . ( empty( $permissions['can_download'] ) ? 'false' : 'true' ) );
         error_log( 'andW Debug Viewer: Button rendering - clear_disabled: "' . $clear_disabled . '"' );
         error_log( 'andW Debug Viewer: Button rendering - download_disabled: "' . $download_disabled . '"' );
-        error_log( 'andW Debug Viewer: Button rendering - is_production: ' . ( ! empty( $permissions['is_production'] ) ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: Button rendering - is_production_mode: ' . ( ! empty( $permissions['is_production_mode'] ) ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: Button rendering - override_active: ' . ( ! empty( $permissions['override_active'] ) ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: Button rendering - temp_session_active: ' . ( ! empty( $permissions['temp_session_active'] ) ? 'true' : 'false' ) );
 
@@ -396,6 +396,9 @@ class Andw_Admin {
         echo '<button type="button" class="button" id="andw-download"' . $download_disabled . '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
         echo '</div>';
         echo '</header>';
+
+        // 一時ログ有効化ブロック（ログより上に配置）
+        $this->render_temp_logging_controls_compact( $permissions );
 
         echo '<div class="andw-status" id="andw-status" aria-live="polite"></div>';
         echo '<textarea id="andw-log" class="andw-log" rows="40" readonly="readonly"></textarea>';
@@ -412,6 +415,12 @@ class Andw_Admin {
             echo '</div>';
         }
         echo '</footer>';
+
+        // 一時許可ブロック（ログより下に配置、扱いにくく）
+        if ( ! empty( $permissions['is_production_mode'] ) ) {
+            $this->render_production_override_controls_compact( $permissions );
+        }
+
         echo '<noscript><p>' . esc_html__( 'このビューアーを使用するには JavaScript を有効にしてください。', 'andw-debug-viewer' ) . '</p></noscript>';
         echo '</section>';
     }
@@ -425,11 +434,11 @@ class Andw_Admin {
     private function render_settings_tab( array $permissions ) {
         echo '<section class="andw-settings">';
 
-        $this->render_temp_logging_controls( $permissions );
-
-        if ( ! empty( $permissions['is_production_mode'] ) ) {
-            $this->render_production_override_controls( $permissions );
-        }
+        echo '<div class="andw-card">';
+        echo '<h2>' . esc_html__( '設定について', 'andw-debug-viewer' ) . '</h2>';
+        echo '<p>' . esc_html__( '一時的なログ有効化や危険な操作の許可設定は、使いやすさのためログビューアータブに移動しました。', 'andw-debug-viewer' ) . '</p>';
+        echo '<p>' . esc_html__( 'こちらの設定タブでは、ビューアーの基本動作設定を調整できます。', 'andw-debug-viewer' ) . '</p>';
+        echo '</div>';
 
         echo '<form action="' . esc_url( admin_url( 'options.php' ) ) . '" method="post">';
         settings_fields( 'andw_settings_group' );
@@ -679,6 +688,76 @@ class Andw_Admin {
         }
 
         echo '</div>';
+        echo '</div>';
+    }
+
+    /**
+     * Render compact temporary logging controls for viewer tab.
+     *
+     * @param array $permissions Permissions context.
+     * @return void
+     */
+    private function render_temp_logging_controls_compact( array $permissions ) {
+        $temp_logging_active = ! empty( $permissions['temp_logging_active'] );
+        $temp_session_active = ! empty( $permissions['temp_session_active'] );
+        $expires = ! empty( $permissions['temp_logging_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['temp_logging_expires'] ) : '';
+
+        $debug_log_path = WP_CONTENT_DIR . '/debug.log';
+        $debug_log_exists = file_exists( $debug_log_path );
+        $wordpress_debug_log_enabled = ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG );
+        $debug_log_working = $debug_log_exists || $wordpress_debug_log_enabled;
+
+        $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
+
+        // ログ機能が無効の場合のみ表示
+        if ( ! $actual_logging_works ) {
+            echo '<div class="andw-temp-logging-compact" style="background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin: 10px 0;">';
+            echo '<p style="margin: 0 0 8px; font-size: 14px;"><strong>⚠️ ログ機能が無効です</strong> - debug.log ファイルが存在せず、WP_DEBUG_LOG も無効になっています。</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0;">';
+            wp_nonce_field( 'andw_toggle_temp_logging' );
+            echo '<input type="hidden" name="action" value="andw_toggle_temp_logging">';
+            echo '<input type="hidden" name="state" value="enable">';
+            submit_button( __( '▶️ 15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary small', 'submit', false );
+            echo '</form>';
+            echo '</div>';
+        }
+    }
+
+    /**
+     * Render compact production override controls for viewer tab.
+     *
+     * @param array $permissions Permissions context.
+     * @return void
+     */
+    private function render_production_override_controls_compact( array $permissions ) {
+        $override_active = ! empty( $permissions['override_active'] );
+        $expires = ! empty( $permissions['override_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['override_expires'] ) : '';
+
+        echo '<div class="andw-production-override-compact" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 10px; margin: 10px 0;">';
+        echo '<details style="cursor: pointer;">';
+        echo '<summary style="font-weight: bold; color: #856404;">🔒 WP_DEBUG=false 環境での危険な操作</summary>';
+        echo '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffeaa7;">';
+
+        if ( $override_active && $expires ) {
+            echo '<p style="margin: 0 0 8px; color: #856404;">現在、一時許可が有効です（' . esc_html( $expires ) . ' まで）。</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0;">';
+            wp_nonce_field( 'andw_toggle_prod_override' );
+            echo '<input type="hidden" name="action" value="andw_toggle_prod_override">';
+            echo '<input type="hidden" name="state" value="disable">';
+            submit_button( __( '一時許可を解除', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
+            echo '</form>';
+        } else {
+            echo '<p style="margin: 0 0 8px; color: #856404; font-size: 13px;">WP_DEBUG=false の環境では、誤操作防止のため「ログをクリア」「ログをダウンロード」は既定で無効です。</p>';
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0;">';
+            wp_nonce_field( 'andw_toggle_prod_override' );
+            echo '<input type="hidden" name="action" value="andw_toggle_prod_override">';
+            echo '<input type="hidden" name="state" value="enable">';
+            submit_button( __( '⚠️ 15分間危険な操作を許可', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
+            echo '</form>';
+        }
+
+        echo '</div>';
+        echo '</details>';
         echo '</div>';
     }
 
