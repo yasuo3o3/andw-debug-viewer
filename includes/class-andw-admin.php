@@ -332,10 +332,20 @@ class Andw_Admin {
      * @return void
      */
     private function render_viewer_tab( array $permissions ) {
+        // WP_DEBUG ベースでの表示
+        $wp_debug_enabled = ! empty( $permissions['wp_debug_enabled'] );
         $environment = isset( $permissions['environment'] ) ? $permissions['environment'] : 'production';
-        $badge_slug  = sanitize_html_class( $environment );
-        $badge_class = 'andw-badge andw-env-' . $badge_slug;
-        $badge_label = strtoupper( $environment );
+
+        if ( $wp_debug_enabled ) {
+            $badge_slug  = 'debug';
+            $badge_class = 'andw-badge andw-env-debug';
+            $badge_label = 'DEBUG MODE';
+        } else {
+            $badge_slug  = 'production';
+            $badge_class = 'andw-badge andw-env-production';
+            $badge_label = 'PRODUCTION';
+        }
+
         $max_lines   = isset( $permissions['defaults']['max_lines'] ) ? (int) $permissions['defaults']['max_lines'] : 1000;
 
         echo '<section class="andw-viewer" aria-label="' . esc_attr__( 'デバッグログビューアー', 'andw-debug-viewer' ) . '">';
@@ -417,7 +427,7 @@ class Andw_Admin {
 
         $this->render_temp_logging_controls( $permissions );
 
-        if ( 'production' === $permissions['environment'] ) {
+        if ( ! empty( $permissions['is_production_mode'] ) ) {
             $this->render_production_override_controls( $permissions );
         }
 
@@ -507,11 +517,11 @@ class Andw_Admin {
         $expires = ! empty( $permissions['override_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['override_expires'] ) : '';
 
         echo '<div class="andw-card">';
-        echo '<h2>' . esc_html__( '本番環境で「ログを削除」「ログをダウンロード」の一時許可', 'andw-debug-viewer' ) . '</h2>';
+        echo '<h2>' . esc_html__( 'WP_DEBUG=false 環境で「ログを削除」「ログをダウンロード」の一時許可', 'andw-debug-viewer' ) . '</h2>';
         if ( $override_active && $expires ) {
             echo '<p>' . esc_html( sprintf( __( '現在、一時許可が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
         } else {
-            echo '<p>' . esc_html__( '本番環境では既定でクリア／ダウンロードは無効です。必要な場合のみ15分間の一時許可を発行できます。', 'andw-debug-viewer' ) . '</p>';
+            echo '<p>' . esc_html__( 'WP_DEBUG=false の環境では既定でクリア／ダウンロードは無効です。必要な場合のみ15分間の一時許可を発行できます。', 'andw-debug-viewer' ) . '</p>';
         }
 
         echo '<div class="andw-control-row">';
@@ -738,10 +748,10 @@ class Andw_Admin {
         $legacy_message = isset( $_GET['andw_message'] ) ? sanitize_key( $_GET['andw_message'] ) : '';
 
         $messages = array(
-            'prod_enabled'         => __( '本番環境で15分間の一時許可を有効化しました。', 'andw-debug-viewer' ),
-            'prod_disabled'        => __( '本番環境での一時許可を解除しました。', 'andw-debug-viewer' ),
-            'override_enabled'     => __( '本番環境での一時許可を有効にしました。', 'andw-debug-viewer' ),
-            'override_disabled'    => __( '本番環境での一時許可を解除しました。', 'andw-debug-viewer' ),
+            'prod_enabled'         => __( 'WP_DEBUG=false 環境で15分間の一時許可を有効化しました。', 'andw-debug-viewer' ),
+            'prod_disabled'        => __( 'WP_DEBUG=false 環境での一時許可を解除しました。', 'andw-debug-viewer' ),
+            'override_enabled'     => __( 'WP_DEBUG=false 環境での一時許可を有効にしました。', 'andw-debug-viewer' ),
+            'override_disabled'    => __( 'WP_DEBUG=false 環境での一時許可を解除しました。', 'andw-debug-viewer' ),
             'override_error'       => __( '操作に失敗しました。', 'andw-debug-viewer' ),
             'temp_logging_enabled' => __( '一時ログ出力を有効にしました（15分間）。', 'andw-debug-viewer' ),
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
@@ -781,8 +791,9 @@ class Andw_Admin {
             'permissions' => $permissions,
             'stats'       => $stats,
             'environment' => array(
-                'label' => strtoupper( $permissions['environment'] ),
-                'slug'  => $permissions['environment'],
+                'label' => ! empty( $permissions['wp_debug_enabled'] ) ? 'DEBUG MODE' : 'PRODUCTION',
+                'slug'  => ! empty( $permissions['wp_debug_enabled'] ) ? 'debug' : 'production',
+                'wp_debug_enabled' => ! empty( $permissions['wp_debug_enabled'] ),
             ),
             'isNetwork' => (bool) $is_network,
             'strings'   => array(

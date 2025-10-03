@@ -182,15 +182,22 @@ class Andw_Plugin {
     public function get_permissions( $network_context = false ) {
         $settings      = $this->get_settings();
         $environment   = wp_get_environment_type();
-        $is_production = ( 'production' === $environment );
+
+        // WP_DEBUG ベースでの安全性判定（より合理的）
+        $wp_debug_enabled = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
+        $is_debug_mode = $wp_debug_enabled;
+        $is_production_mode = ! $is_debug_mode;  // WP_DEBUG=false を本番モードとして扱う
+
         $override_active = $this->settings->is_production_override_active();
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $temp_session_active = $this->settings->is_temp_session_active();
-        $allow_mutation  = ! $is_production || $override_active;
+        $allow_mutation  = $is_debug_mode || $override_active;
 
         // デバッグ出力
         error_log( 'andW Debug Viewer: get_permissions() - environment: ' . $environment );
-        error_log( 'andW Debug Viewer: get_permissions() - is_production: ' . ( $is_production ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - wp_debug_enabled: ' . ( $wp_debug_enabled ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - is_debug_mode: ' . ( $is_debug_mode ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: get_permissions() - is_production_mode: ' . ( $is_production_mode ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: get_permissions() - override_active: ' . ( $override_active ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: get_permissions() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
         error_log( 'andW Debug Viewer: get_permissions() - temp_session_active: ' . ( $temp_session_active ? 'true' : 'false' ) );
@@ -205,12 +212,12 @@ class Andw_Plugin {
             'download' => '',
         );
 
-        // 一時セッション有効時は本番環境でも操作可能
-        if ( $is_production && ! $override_active && ! $temp_session_active ) {
+        // WP_DEBUG=false（本番モード）時は一時セッション有効時のみ操作可能
+        if ( $is_production_mode && ! $override_active && ! $temp_session_active ) {
             $can_clear    = false;
             $can_download = false;
-            $reasons['clear']    = __( '本番環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。', 'andw-debug-viewer' );
-            $reasons['download'] = __( '本番環境では既定でダウンロードは無効です。', 'andw-debug-viewer' );
+            $reasons['clear']    = __( 'WP_DEBUG=false の環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。', 'andw-debug-viewer' );
+            $reasons['download'] = __( 'WP_DEBUG=false の環境では既定でダウンロードは無効です。', 'andw-debug-viewer' );
         }
 
         if ( $download_globally_disabled ) {
@@ -234,7 +241,10 @@ class Andw_Plugin {
 
         return array(
             'environment'                => $environment,
-            'is_production'              => $is_production,
+            'wp_debug_enabled'           => $wp_debug_enabled,
+            'is_debug_mode'              => $is_debug_mode,
+            'is_production_mode'         => $is_production_mode,
+            'is_production'              => $is_production_mode,  // 後方互換性のため
             'override_active'            => $override_active,
             'override_expires'           => $override_active ? (int) $settings['production_temp_expiration'] : 0,
             'temp_logging_active'        => $temp_logging_active,
