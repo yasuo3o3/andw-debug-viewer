@@ -45,11 +45,16 @@ class Andw_Admin {
      * @return void
      */
     public function debug_admin_post() {
-        if ( isset( $_POST['action'] ) && strpos( $_POST['action'], 'andw_' ) === 0 ) {
-            error_log( 'andW Debug Viewer: admin-post.php action detected: ' . $_POST['action'] );
-            error_log( 'andW Debug Viewer: POST data: ' . print_r( $_POST, true ) );
-            error_log( 'andW Debug Viewer: Current user ID: ' . get_current_user_id() );
-            error_log( 'andW Debug Viewer: Can manage options: ' . ( current_user_can( 'manage_options' ) ? 'YES' : 'NO' ) );
+        if ( empty( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'andw_admin_post_trace' ) ) {
+            return;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        if ( isset( $_POST['action'] ) && strpos( sanitize_key( wp_unslash( $_POST['action'] ) ), 'andw_' ) === 0 ) {
+            // admin-post.php action detected (logging removed)
         }
     }
 
@@ -269,7 +274,13 @@ class Andw_Admin {
             wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
         }
 
-        $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'viewer';
+        // nonce検証
+        if ( isset( $_GET['tab'] ) && ( empty( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_switch_tab' ) ) ) {
+            $active_tab = 'viewer';
+        } else {
+            $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'viewer';
+        }
+
         if ( ! in_array( $active_tab, array( 'viewer', 'settings' ), true ) ) {
             $active_tab = 'viewer';
         }
@@ -846,8 +857,11 @@ class Andw_Admin {
         $current_tab = 'viewer';  // デフォルトはビューアータブ
         if ( isset( $_POST['current_tab'] ) ) {
             $current_tab = sanitize_key( $_POST['current_tab'] );
-        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
-            $current_tab = 'settings';
+        } else {
+            $referer = wp_get_referer();
+            if ( $referer && strpos( $referer, 'tab=settings' ) !== false ) {
+                $current_tab = 'settings';
+            }
         }
 
         $redirect = add_query_arg(
@@ -994,8 +1008,11 @@ class Andw_Admin {
         $current_tab = 'viewer';  // デフォルトはビューアータブ
         if ( isset( $_POST['current_tab'] ) ) {
             $current_tab = sanitize_key( $_POST['current_tab'] );
-        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
-            $current_tab = 'settings';
+        } else {
+            $referer = wp_get_referer();
+            if ( $referer && strpos( $referer, 'tab=settings' ) !== false ) {
+                $current_tab = 'settings';
+            }
         }
 
         $redirect_url = add_query_arg(
@@ -1022,7 +1039,7 @@ class Andw_Admin {
             wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
         }
 
-        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'andw_test_log_output' ) ) {
+        if ( empty( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'andw_test_log_output' ) ) {
             wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
         }
 
@@ -1036,12 +1053,7 @@ class Andw_Admin {
         $log_errors = ini_get( 'log_errors' );
         $error_log_setting = ini_get( 'error_log' );
 
-        // 強制的にログ設定を適用
-        if ( $temp_logging_active ) {
-            ini_set( 'log_errors', '1' );
-            ini_set( 'error_log', $log_file );
-            error_reporting( E_ALL );
-        }
+        // ログ設定（ini_set削除済み）
 
         $timestamp = wp_date( 'Y-m-d H:i:s' );
 
@@ -1051,7 +1063,7 @@ class Andw_Admin {
 
         // debug.logファイルの存在確認
         $log_file_exists = file_exists( $log_file ) ? 'YES' : 'NO';
-        $log_file_writable = is_writable( dirname( $log_file ) ) ? 'YES' : 'NO';
+        $log_file_writable = wp_is_writable( dirname( $log_file ) ) ? 'YES' : 'NO';
         $log_file_size = file_exists( $log_file ) ? filesize( $log_file ) : 0;
 
         // PHPの設定詳細
@@ -1120,8 +1132,11 @@ class Andw_Admin {
         $current_tab = 'viewer';  // デフォルトはビューアータブ
         if ( isset( $_POST['current_tab'] ) ) {
             $current_tab = sanitize_key( $_POST['current_tab'] );
-        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
-            $current_tab = 'settings';
+        } else {
+            $referer = wp_get_referer();
+            if ( $referer && strpos( $referer, 'tab=settings' ) !== false ) {
+                $current_tab = 'settings';
+            }
         }
 
         $redirect_url = add_query_arg(
