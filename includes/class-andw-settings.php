@@ -370,24 +370,46 @@ class Andw_Settings {
     }
 
     /**
-     * Create temporary session file.
+     * Create session file with proper type and permissions.
      *
+     * @param string $type Session type ('temp_logging' or 'wordpress_debug').
+     * @param array  $permissions Optional permissions override.
      * @return void
      */
-    private function create_temp_session_file() {
-        error_log( 'andW Debug Viewer: create_temp_session_file() called' );
+    private function create_session_file( $type = 'temp_logging', $permissions = array() ) {
+        error_log( 'andW Debug Viewer: create_session_file() called with type: ' . $type );
+
+        // デフォルトの権限設定
+        $default_permissions = array(
+            'safe_to_clear'      => false,
+            'safe_to_download'   => true,
+            'created_by_plugin'  => false,
+        );
+
+        // セッションタイプ別のデフォルト権限
+        if ( 'temp_logging' === $type ) {
+            $default_permissions['safe_to_clear'] = true;
+            $default_permissions['created_by_plugin'] = true;
+        } elseif ( 'wordpress_debug' === $type ) {
+            $default_permissions['safe_to_clear'] = false;
+            $default_permissions['created_by_plugin'] = false;
+        }
+
+        // 権限をマージ
+        $final_permissions = wp_parse_args( $permissions, $default_permissions );
 
         // Use time() instead of current_time() for consistency across environments
         $now = time();
         $session_data = array(
-            'created_at' => $now,
-            'expires_at' => $now + ( 15 * MINUTE_IN_SECONDS ),
-            'session_type' => 'temp_logging',
-            'safe_to_clear' => true,
+            'created_at'  => $now,
+            'expires_at'  => $now + ( 15 * MINUTE_IN_SECONDS ),
+            'session_type' => $type,
+            'permissions' => $final_permissions,
         );
 
-        error_log( 'andW Debug Viewer: create_temp_session_file() - current time: ' . $now );
-        error_log( 'andW Debug Viewer: create_temp_session_file() - expires at: ' . $session_data['expires_at'] );
+        error_log( 'andW Debug Viewer: create_session_file() - current time: ' . $now );
+        error_log( 'andW Debug Viewer: create_session_file() - expires at: ' . $session_data['expires_at'] );
+        error_log( 'andW Debug Viewer: create_session_file() - permissions: ' . json_encode( $final_permissions ) );
 
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
@@ -405,42 +427,89 @@ class Andw_Settings {
     }
 
     /**
+     * Create temporary session file (backward compatibility).
+     *
+     * @return void
+     */
+    private function create_temp_session_file() {
+        $this->create_session_file( 'temp_logging' );
+    }
+
+    /**
+     * Create WordPress debug session file for WP_DEBUG=true environments.
+     *
+     * @return void
+     */
+    public function create_wordpress_debug_session() {
+        error_log( 'andW Debug Viewer: create_wordpress_debug_session() called' );
+
+        // WP_DEBUG=true時のみ実行
+        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        if ( ! $wp_debug_enabled || ! $wp_debug_log_enabled ) {
+            error_log( 'andW Debug Viewer: WP_DEBUG or WP_DEBUG_LOG not enabled, skipping session creation' );
+            return;
+        }
+
+        // 既存のセッションファイルをチェック
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        if ( file_exists( $session_file ) ) {
+            error_log( 'andW Debug Viewer: Session file already exists, not overwriting' );
+            return;
+        }
+
+        // WordPress debugセッションを作成
+        $this->create_session_file( 'wordpress_debug' );
+        error_log( 'andW Debug Viewer: WordPress debug session created' );
+    }
+
+    /**
+     * Get active session data if exists.
+     *
+     * @return array|false Session data or false if no active session.
+     */
+    public function get_active_session() {
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+
+        error_log( 'andW Debug Viewer: get_active_session() - session_file: ' . $session_file );
+        error_log( 'andW Debug Viewer: get_active_session() - file_exists: ' . ( file_exists( $session_file ) ? 'true' : 'false' ) );
+
+        if ( ! file_exists( $session_file ) ) {
+            error_log( 'andW Debug Viewer: get_active_session() - セッションファイルが存在しません' );
+            return false;
+        }
+
+        $session_content = file_get_contents( $session_file );
+        error_log( 'andW Debug Viewer: get_active_session() - session_content: ' . $session_content );
+
+        $session_data = json_decode( $session_content, true );
+        error_log( 'andW Debug Viewer: get_active_session() - session_data: ' . print_r( $session_data, true ) );
+
+        if ( ! $session_data || ! isset( $session_data['expires_at'] ) ) {
+            error_log( 'andW Debug Viewer: get_active_session() - 不正なセッションデータ' );
+            return false;
+        }
+
+        $current_time = time();
+        $expires_at = (int) $session_data['expires_at'];
+        $is_active = ( $expires_at > $current_time );
+
+        error_log( 'andW Debug Viewer: get_active_session() - current_time: ' . $current_time );
+        error_log( 'andW Debug Viewer: get_active_session() - expires_at: ' . $expires_at );
+        error_log( 'andW Debug Viewer: get_active_session() - is_active: ' . ( $is_active ? 'true' : 'false' ) );
+
+        return $is_active ? $session_data : false;
+    }
+
+    /**
      * Check if temp session is active.
      *
      * @return bool
      */
     public function is_temp_session_active() {
-        $session_file = WP_CONTENT_DIR . '/andw-session.json';
-
-        error_log( 'andW Debug Viewer: is_temp_session_active() - session_file: ' . $session_file );
-        error_log( 'andW Debug Viewer: is_temp_session_active() - file_exists: ' . ( file_exists( $session_file ) ? 'true' : 'false' ) );
-
-        if ( ! file_exists( $session_file ) ) {
-            error_log( 'andW Debug Viewer: is_temp_session_active() - セッションファイルが存在しません' );
-            return false;
-        }
-
-        $session_content = file_get_contents( $session_file );
-        error_log( 'andW Debug Viewer: is_temp_session_active() - session_content: ' . $session_content );
-
-        $session_data = json_decode( $session_content, true );
-        error_log( 'andW Debug Viewer: is_temp_session_active() - session_data: ' . print_r( $session_data, true ) );
-
-        if ( ! $session_data || ! isset( $session_data['expires_at'] ) ) {
-            error_log( 'andW Debug Viewer: is_temp_session_active() - セッションデータが無効またはexpires_atが不足' );
-            return false;
-        }
-
-        // Use time() instead of current_time() for consistency with session creation
-        $current_time = time();
-        $expires_at = $session_data['expires_at'];
-        $is_active = $expires_at > $current_time;
-
-        error_log( 'andW Debug Viewer: is_temp_session_active() - current_time: ' . $current_time );
-        error_log( 'andW Debug Viewer: is_temp_session_active() - expires_at: ' . $expires_at );
-        error_log( 'andW Debug Viewer: is_temp_session_active() - is_active: ' . ( $is_active ? 'true' : 'false' ) );
-
-        return $is_active;
+        $session = $this->get_active_session();
+        return $session !== false;
     }
 
     /**

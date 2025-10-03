@@ -591,6 +591,10 @@ class Andw_Admin {
             error_log( $init_message );
 
             error_log( 'andW Debug Viewer: Created initial debug.log file for WP_DEBUG_LOG=true environment' );
+
+            // WordPressデバッグセッションファイルを作成
+            $settings_handler = $this->plugin->get_settings_handler();
+            $settings_handler->create_wordpress_debug_session();
         } else {
             // ケース3: debug.log無し + WP_DEBUG_LOG=false = 完全無効状態
             $debug_log_working = false;
