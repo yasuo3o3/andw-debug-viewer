@@ -748,6 +748,32 @@ class Andw_Admin {
             echo '</div>';
         }
 
+        // テスト機能（常時表示）
+        echo '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">';
+        echo '<p style="margin: 0 0 5px; font-size: 12px; color: #666;">テスト機能:</p>';
+        echo '<div style="display: flex; gap: 5px; flex-wrap: wrap;">';
+
+        // テスト用ログ出力
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0; display: inline-block;">';
+        wp_nonce_field( 'andw_test_log_output' );
+        echo '<input type="hidden" name="action" value="andw_test_log_output">';
+        echo '<input type="hidden" name="current_tab" value="viewer">';
+        submit_button( __( '🧪 テスト用ログ出力', 'andw-debug-viewer' ), 'secondary small', 'submit', false, array( 'style' => 'margin: 0;' ) );
+        echo '</form>';
+
+        // 期限切れ処理テスト（一時ログ有効時または無効時）
+        if ( ! $actual_logging_works || $temp_logging_active ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0; display: inline-block;">';
+            wp_nonce_field( 'andw_test_expiration' );
+            echo '<input type="hidden" name="action" value="andw_test_expiration">';
+            echo '<input type="hidden" name="current_tab" value="viewer">';
+            submit_button( __( '🔬 期限切れ処理テスト', 'andw-debug-viewer' ), 'secondary small', 'submit', false, array( 'style' => 'margin: 0;' ) );
+            echo '</form>';
+        }
+
+        echo '</div>';
+        echo '</div>';
+
         echo '</div>';
     }
 
@@ -1107,10 +1133,18 @@ class Andw_Admin {
             }
         }
 
+        // リダイレクト先を元のタブに戻す
+        $current_tab = 'viewer';  // デフォルトはビューアータブ
+        if ( isset( $_POST['current_tab'] ) ) {
+            $current_tab = sanitize_key( $_POST['current_tab'] );
+        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
+            $current_tab = 'settings';
+        }
+
         $redirect_url = add_query_arg(
             array(
                 'page' => 'andw-debug-viewer',
-                'tab'  => 'settings',
+                'tab'  => $current_tab,
                 'temp_logging_message' => 'test_log_success',
             ),
             admin_url( 'admin.php' )
@@ -1177,10 +1211,18 @@ class Andw_Admin {
         $method->setAccessible( true );
         $method->invoke( $settings_handler );
 
+        // リダイレクト先を元のタブに戻す
+        $current_tab = 'viewer';  // デフォルトはビューアータブ
+        if ( isset( $_POST['current_tab'] ) ) {
+            $current_tab = sanitize_key( $_POST['current_tab'] );
+        } elseif ( isset( $_SERVER['HTTP_REFERER'] ) && strpos( $_SERVER['HTTP_REFERER'], 'tab=settings' ) !== false ) {
+            $current_tab = 'settings';
+        }
+
         $redirect_url = add_query_arg(
             array(
                 'page' => 'andw-debug-viewer',
-                'tab'  => 'settings',
+                'tab'  => $current_tab,
                 'temp_logging_message' => 'expiration_test_complete',
             ),
             admin_url( 'admin.php' )
