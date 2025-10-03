@@ -246,6 +246,9 @@ class Andw_Settings {
         error_log( 'andW Debug Viewer: enable_temp_logging() - final result: ' . ( $updated ? 'SUCCESS' : 'FAILED' ) );
 
         if ( $updated ) {
+            // セッションファイルを作成
+            $this->create_temp_session_file();
+
             $this->apply_temp_logging_settings();
 
             // ログ有効化の確認メッセージをデバッグログファイルに出力
@@ -330,6 +333,13 @@ class Andw_Settings {
         $settings['temp_logging_expiration'] = 0;
         $settings['debug_log_created_by_plugin'] = false;
         $settings['debug_log_creation_timestamp'] = 0;
+
+        // andw-session.jsonファイルを削除
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        if ( file_exists( $session_file ) ) {
+            $deleted = unlink( $session_file );
+            error_log( 'andW Debug Viewer: Deleted session file: ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
+        }
 
         return update_option( self::OPTION_NAME, $settings, false );
     }
@@ -484,6 +494,13 @@ class Andw_Settings {
 
             $updated = update_option( self::OPTION_NAME, $settings, false );
             error_log( 'andW Debug Viewer: JSON cleanup result: ' . ( $updated ? 'SUCCESS' : 'FAILED' ) );
+        }
+
+        // andw-session.jsonファイルを削除
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        if ( file_exists( $session_file ) ) {
+            $deleted = unlink( $session_file );
+            error_log( 'andW Debug Viewer: Deleted session file: ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
         }
 
         // 古いdebug-temp.logファイルがあれば削除（後方互換性）
