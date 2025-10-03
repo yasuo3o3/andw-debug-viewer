@@ -1150,7 +1150,7 @@ class Andw_Admin {
      */
     public function ajax_toggle_temp_logging() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( json_encode( array( 'success' => false, 'message' => 'Permission denied' ) ) );
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
         }
 
         check_ajax_referer( 'andw_ajax_nonce', 'nonce' );
@@ -1166,7 +1166,11 @@ class Andw_Admin {
             $message = $success ? 'temp_logging_disabled' : 'temp_logging_error';
         }
 
-        wp_die( json_encode( array( 'success' => $success, 'message' => $message ) ) );
+        if ( $success ) {
+            wp_send_json_success( array( 'message' => $message ) );
+        } else {
+            wp_send_json_error( array( 'message' => $message ) );
+        }
     }
 
 }
