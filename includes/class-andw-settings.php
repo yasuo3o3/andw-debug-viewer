@@ -547,14 +547,7 @@ class Andw_Settings {
     public function get_active_session() {
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
-        // 無限ログ防止のため、詳細なログ出力を抑制
-        static $logged_session_check = false;
-
         if ( ! file_exists( $session_file ) ) {
-            if ( ! $logged_session_check ) {
-                error_log( 'andW Debug Viewer: セッションファイルが存在しません（初回チェック）' );
-                $logged_session_check = true;
-            }
             return false;
         }
 
