@@ -534,36 +534,65 @@ class Andw_Settings {
     private function handle_temp_logging_expiration() {
         error_log( 'andW Debug Viewer: Temporary logging expiration cleanup started' );
 
-        // JSONファイルから一時ログ設定を取得
-        $settings = $this->get_settings();
-        $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
-        $was_created_by_plugin = ! empty( $settings['debug_log_created_by_plugin'] );
+        // セッションファイルから権限情報を取得
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        $session_data = false;
+        $safe_to_clear = false;
+        $created_by_plugin = false;
 
-        error_log( 'andW Debug Viewer: was_temp_active: ' . ( $was_temp_active ? 'YES' : 'NO' ) );
-        error_log( 'andW Debug Viewer: was_created_by_plugin: ' . ( $was_created_by_plugin ? 'YES' : 'NO' ) );
+        if ( file_exists( $session_file ) ) {
+            $session_content = file_get_contents( $session_file );
+            $session_data = json_decode( $session_content, true );
 
-        if ( $was_temp_active ) {
-            // debug.logを削除するかどうか判断
-            $debug_log_path = WP_CONTENT_DIR . '/debug.log';
-            if ( $was_created_by_plugin && file_exists( $debug_log_path ) ) {
-                $deleted = unlink( $debug_log_path );
-                error_log( 'andW Debug Viewer: Deleted plugin-created debug.log: ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
-            } elseif ( file_exists( $debug_log_path ) ) {
-                error_log( 'andW Debug Viewer: debug.log exists but was not created by plugin - keeping it' );
-            } else {
-                error_log( 'andW Debug Viewer: debug.log does not exist - nothing to delete' );
+            if ( $session_data && isset( $session_data['permissions'] ) ) {
+                $safe_to_clear = ! empty( $session_data['permissions']['safe_to_clear'] );
+                $created_by_plugin = ! empty( $session_data['permissions']['created_by_plugin'] );
+
+                error_log( 'andW Debug Viewer: Session type: ' . ( isset( $session_data['session_type'] ) ? $session_data['session_type'] : 'unknown' ) );
+                error_log( 'andW Debug Viewer: safe_to_clear: ' . ( $safe_to_clear ? 'YES' : 'NO' ) );
+                error_log( 'andW Debug Viewer: created_by_plugin: ' . ( $created_by_plugin ? 'YES' : 'NO' ) );
             }
-
-            // JSONファイルから一時ログ設定をクリア
-            error_log( 'andW Debug Viewer: Clearing temporary logging settings from JSON' );
-            $settings['temp_logging_enabled'] = false;
-            $settings['temp_logging_expiration'] = 0;
-            $settings['debug_log_created_by_plugin'] = false;
-            $settings['debug_log_creation_timestamp'] = 0;
-
-            $updated = update_option( self::OPTION_NAME, $settings, false );
-            error_log( 'andW Debug Viewer: JSON cleanup result: ' . ( $updated ? 'SUCCESS' : 'FAILED' ) );
         }
+
+        // フォールバック: セッションファイルがない場合は従来の方法で確認
+        if ( ! $session_data ) {
+            error_log( 'andW Debug Viewer: No session file found, checking WordPress options as fallback' );
+            $settings = $this->get_settings();
+            $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
+            $was_created_by_plugin = ! empty( $settings['debug_log_created_by_plugin'] );
+
+            error_log( 'andW Debug Viewer: was_temp_active: ' . ( $was_temp_active ? 'YES' : 'NO' ) );
+            error_log( 'andW Debug Viewer: was_created_by_plugin: ' . ( $was_created_by_plugin ? 'YES' : 'NO' ) );
+
+            $safe_to_clear = $was_temp_active;
+            $created_by_plugin = $was_created_by_plugin;
+        }
+
+        // debug.logを削除するかどうか判断
+        $debug_log_path = WP_CONTENT_DIR . '/debug.log';
+        if ( $safe_to_clear && $created_by_plugin && file_exists( $debug_log_path ) ) {
+            $deleted = unlink( $debug_log_path );
+            error_log( 'andW Debug Viewer: Deleted plugin-created debug.log: ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
+        } elseif ( file_exists( $debug_log_path ) ) {
+            if ( ! $safe_to_clear ) {
+                error_log( 'andW Debug Viewer: debug.log exists but safe_to_clear=false - keeping it' );
+            } elseif ( ! $created_by_plugin ) {
+                error_log( 'andW Debug Viewer: debug.log exists but was not created by plugin - keeping it' );
+            }
+        } else {
+            error_log( 'andW Debug Viewer: debug.log does not exist - nothing to delete' );
+        }
+
+        // WordPressオプションから一時ログ設定をクリア
+        error_log( 'andW Debug Viewer: Clearing temporary logging settings from WordPress options' );
+        $settings = $this->get_settings();
+        $settings['temp_logging_enabled'] = false;
+        $settings['temp_logging_expiration'] = 0;
+        $settings['debug_log_created_by_plugin'] = false;
+        $settings['debug_log_creation_timestamp'] = 0;
+
+        $updated = update_option( self::OPTION_NAME, $settings, false );
+        error_log( 'andW Debug Viewer: WordPress options cleanup result: ' . ( $updated ? 'SUCCESS' : 'FAILED' ) );
 
         // andw-session.jsonファイルを削除
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
