@@ -960,11 +960,13 @@ class Andw_Admin {
             wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
         }
 
-        if ( ! isset( $_POST['_wpnonce'] ) ) {
+        $nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+
+        if ( empty( $nonce ) ) {
             wp_die( esc_html__( 'ナンスが見つかりません。', 'andw-debug-viewer' ) );
         }
 
-        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'andw_toggle_temp_logging' ) ) {
+        if ( ! wp_verify_nonce( $nonce, 'andw_toggle_temp_logging' ) ) {
             wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
         }
 
