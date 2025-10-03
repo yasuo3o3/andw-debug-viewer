@@ -75,6 +75,67 @@ class Andw_Settings {
     }
 
     /**
+     * WP_DEBUG_LOG=true環境でのoverride状態管理
+     *
+     * @return bool
+     */
+    public function is_debug_log_override_active() {
+        $override = get_option( 'andw_debug_log_override', array( 'enabled' => false ) );
+
+        if ( empty( $override['enabled'] ) ) {
+            return false;
+        }
+
+        if ( ! isset( $override['expires_at'] ) ) {
+            return false;
+        }
+
+        $expires_at = (int) $override['expires_at'];
+        $current_time = time();
+
+        if ( $expires_at <= $current_time ) {
+            // 期限切れの場合は自動でクリア
+            delete_option( 'andw_debug_log_override' );
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * WP_DEBUG_LOG=true環境でのoverride有効化
+     *
+     * @return bool
+     */
+    public function enable_debug_log_override() {
+        $override_data = array(
+            'enabled' => true,
+            'expires_at' => time() + ( 15 * MINUTE_IN_SECONDS )
+        );
+
+        return update_option( 'andw_debug_log_override', $override_data, false );
+    }
+
+    /**
+     * WP_DEBUG_LOG=true環境でのoverride無効化
+     *
+     * @return bool
+     */
+    public function disable_debug_log_override() {
+        return delete_option( 'andw_debug_log_override' );
+    }
+
+    /**
+     * WP_DEBUG_LOG=true環境でのoverride期限取得
+     *
+     * @return int
+     */
+    public function get_debug_log_override_expires() {
+        $override = get_option( 'andw_debug_log_override', array() );
+        return isset( $override['expires_at'] ) ? (int) $override['expires_at'] : 0;
+    }
+
+    /**
      * Sanitize settings before saving.
      *
      * @param array $input Raw input.
@@ -144,10 +205,17 @@ class Andw_Settings {
      * @return bool
      */
     public function is_production_override_active() {
-        $settings   = $this->get_settings();
-        $expiration = (int) $settings['production_temp_expiration'];
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
 
-        return $expiration > current_time( 'timestamp' );
+        if ( $wp_debug_log_enabled ) {
+            // WP_DEBUG_LOG=true環境: wp_optionsで管理
+            return $this->is_debug_log_override_active();
+        } else {
+            // WP_DEBUG_LOG=false環境: 従来の方法
+            $settings   = $this->get_settings();
+            $expiration = (int) $settings['production_temp_expiration'];
+            return $expiration > current_time( 'timestamp' );
+        }
     }
 
     /**

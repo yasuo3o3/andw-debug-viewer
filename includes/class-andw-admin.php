@@ -832,32 +832,31 @@ class Andw_Admin {
         $state = isset( $_POST['state'] ) ? sanitize_key( $_POST['state'] ) : 'enable';
         $settings_handler = $this->plugin->get_settings_handler();
 
-        error_log( 'andW Debug Viewer: handle_toggle_production_override() - state: ' . $state );
-        error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行前の権限確認' );
-
-        // 現在の権限状態を確認
-        $current_permissions = $this->plugin->get_permissions();
-        error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行前の権限: ' . print_r( $current_permissions, true ) );
+        // WP_DEBUG_LOG環境を確認してセッションレスかセッションベースかを判定
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
 
         if ( 'disable' === $state ) {
-            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 本番環境一時許可を無効化' );
-            $settings = $settings_handler->get_settings();
-            $settings['production_temp_expiration'] = 0;
-            $result = update_option( Andw_Settings::OPTION_NAME, $settings, false );
-            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 無効化結果: ' . ( $result ? 'SUCCESS' : 'FAILED' ) );
+            if ( $wp_debug_log_enabled ) {
+                // WP_DEBUG_LOG=true: wp_optionsベースで無効化
+                $result = $settings_handler->disable_debug_log_override();
+            } else {
+                // WP_DEBUG_LOG=false: 従来のセッションベース
+                $settings = $settings_handler->get_settings();
+                $settings['production_temp_expiration'] = 0;
+                $result = update_option( Andw_Settings::OPTION_NAME, $settings, false );
+            }
             $message = 'prod_disabled';
         } else {
-            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 本番環境一時許可を有効化（15分間）' );
-            $timestamp = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
-            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 設定期限: ' . $timestamp . ' (現在時刻: ' . current_time( 'timestamp' ) . ')' );
-            $result = $settings_handler->set_production_override_expiration( $timestamp );
-            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 有効化結果: ' . print_r( $result, true ) );
+            if ( $wp_debug_log_enabled ) {
+                // WP_DEBUG_LOG=true: wp_optionsベースで有効化（15分間）
+                $result = $settings_handler->enable_debug_log_override();
+            } else {
+                // WP_DEBUG_LOG=false: 従来のセッションベース
+                $timestamp = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
+                $result = $settings_handler->set_production_override_expiration( $timestamp );
+            }
             $message = 'prod_enabled';
         }
-
-        // 設定後の権限状態を確認
-        $after_permissions = $this->plugin->get_permissions();
-        error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行後の権限: ' . print_r( $after_permissions, true ) );
 
         // リダイレクト先を元のタブに戻す
         $current_tab = 'viewer';  // デフォルトはビューアータブ

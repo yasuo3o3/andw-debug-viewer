@@ -165,7 +165,7 @@ class Andw_Plugin {
      * @return void
      */
     public function ensure_wordpress_debug_session() {
-        // WP_DEBUG_LOG=true時のみ実行
+        // WP_DEBUG_LOG=true環境ではセッションファイルを使用しない（セッションレス設計）
         $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
         $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
 
@@ -173,30 +173,9 @@ class Andw_Plugin {
             return;
         }
 
-        // 無限ループ防止：セッションファイルが既に存在し有効な場合は何もしない
-        $session_file = WP_CONTENT_DIR . '/andw-session.json';
-        if ( file_exists( $session_file ) ) {
-            $session_content = @file_get_contents( $session_file );
-            if ( $session_content ) {
-                $session_data = @json_decode( $session_content, true );
-                if ( $session_data && isset( $session_data['expires_at'] ) ) {
-                    $expires_at = (int) $session_data['expires_at'];
-                    $current_time = time();
-
-                    // まだ有効期限内なら何もしない
-                    if ( $expires_at > $current_time ) {
-                        return;
-                    }
-
-                    // 期限切れの場合のみ新規作成（ログ出力は最小限）
-                    $this->create_wordpress_debug_session_silent();
-                    return;
-                }
-            }
-        }
-
-        // セッションファイルが存在しない場合のみ新規作成
-        $this->create_wordpress_debug_session_silent();
+        // WP_DEBUG_LOG=true時はセッションファイル作成をスキップ
+        // 状態管理はwp_optionsで行う
+        return;
     }
 
     /**
@@ -257,7 +236,15 @@ class Andw_Plugin {
         $is_debug_mode = $wp_debug_enabled && ! $wp_debug_log_enabled;  // WP_DEBUG=true かつ WP_DEBUG_LOG=false
         $is_production_mode = ! $is_debug_mode;
 
-        $override_active = $this->settings->is_production_override_active();
+        // WP_DEBUG_LOG環境によってオーバーライド状態の取得方法を分ける
+        if ( $wp_debug_log_enabled ) {
+            // WP_DEBUG_LOG=true: wp_optionsベースのオーバーライド状態を確認
+            $override_active = $this->settings->is_debug_log_override_active();
+        } else {
+            // WP_DEBUG_LOG=false: 従来のセッションベースのオーバーライド状態を確認
+            $override_active = $this->settings->is_production_override_active();
+        }
+
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $temp_session_active = $this->settings->is_temp_session_active();
 
@@ -324,7 +311,7 @@ class Andw_Plugin {
             'is_debug_mode'              => $is_debug_mode,
             'is_production_mode'         => $is_production_mode,
             'override_active'            => $override_active,
-            'override_expires'           => $override_active ? (int) $settings['production_temp_expiration'] : 0,
+            'override_expires'           => $override_active ? ( $wp_debug_log_enabled ? $this->settings->get_debug_log_override_expires() : (int) $settings['production_temp_expiration'] ) : 0,
             'temp_logging_active'        => $temp_logging_active,
             'temp_logging_expires'       => $temp_logging_active ? (int) $settings['temp_logging_expiration'] : 0,
             'temp_session_active'        => $temp_session_active,
