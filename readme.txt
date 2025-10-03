@@ -1,4 +1,4 @@
-=== WP Debug Viewer ===
+=== andW Debug Viewer ===
 Contributors: yasuo3o3
 Tags: debug, logging, tools, admin
 Requires at least: 6.0
@@ -12,7 +12,7 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
 
-WP Debug Viewer は WordPress の `wp-content/debug.log` を管理画面から安全に参照・管理するためのユーティリティです。大容量ログでも直近に絞って取得し、権限や環境に応じて操作を制限します。
+andW Debug Viewer は WordPress の `wp-content/debug.log` を管理画面から安全に参照・管理するためのユーティリティです。大容量ログでも直近に絞って取得し、権限や環境に応じて操作を制限します。
 
 * 直近 N 行または直近 M 分のログを切り替えつつ表示
 * REST API ベースの非同期ビューアーで自動更新/一時停止に対応
@@ -25,8 +25,8 @@ WP Debug Viewer は WordPress の `wp-content/debug.log` を管理画面から�
 == Installation ==
 
 1. プラグイン ZIP をアップロードするか、フォルダーごと `wp-content/plugins/` 配下に配置します。
-2. 「プラグイン」画面で **WP Debug Viewer** を有効化します。
-3. 管理画面のトップレベルメニュー「WP Debug Viewer」からビューアーへアクセスできます。
+2. 「プラグイン」画面で **andW Debug Viewer** を有効化します。
+3. 管理画面のトップレベルメニュー「andW Debug Viewer」からビューアーへアクセスできます。
 
 == Frequently Asked Questions ==
 
