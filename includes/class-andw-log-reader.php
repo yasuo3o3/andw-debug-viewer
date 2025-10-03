@@ -51,7 +51,7 @@ class Andw_Log_Reader {
 
         if ( $exists ) {
             $info['readable'] = is_readable( $path );
-            $info['writable'] = is_writable( $path );
+            $info['writable'] = wp_is_writable( $path );
 
             if ( $info['readable'] ) {
                 $size = filesize( $path );
@@ -175,24 +175,18 @@ class Andw_Log_Reader {
             return $write_check;
         }
 
-        $path   = $this->get_log_path();
-        $handle = fopen( $path, 'c+b' );
+        $path = $this->get_log_path();
 
-        if ( ! $handle ) {
-            return new WP_Error( 'andw_open_failed', __( 'ログファイルを開けませんでした。', 'andw-debug-viewer' ) );
+        // WP_Filesystemを使用してファイルを空にする
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
         }
 
-        if ( ! flock( $handle, LOCK_EX ) ) {
-            fclose( $handle );
-            return new WP_Error( 'andw_lock_failed', __( 'ログファイルをロックできませんでした。', 'andw-debug-viewer' ) );
-        }
+        $result = $wp_filesystem->put_contents( $path, '', FS_CHMOD_FILE );
 
-        $truncated = ftruncate( $handle, 0 );
-        fflush( $handle );
-        flock( $handle, LOCK_UN );
-        fclose( $handle );
-
-        if ( ! $truncated ) {
+        if ( ! $result ) {
             return new WP_Error( 'andw_truncate_failed', __( 'ログファイルをクリアできませんでした。', 'andw-debug-viewer' ) );
         }
 
@@ -260,7 +254,7 @@ class Andw_Log_Reader {
         if ( ! file_exists( $path ) ) {
             return new WP_Error( 'andw_missing', __( 'debug.log が存在しません。', 'andw-debug-viewer' ) );
         }
-        if ( ! is_writable( $path ) ) {
+        if ( ! wp_is_writable( $path ) ) {
             return new WP_Error( 'andw_not_writable', __( 'debug.log に書き込めません。ファイル権限を確認してください。', 'andw-debug-viewer' ) );
         }
 
