@@ -240,7 +240,6 @@ class Andw_Admin {
         // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
         // error_log( 'andW Debug Viewer: Admin page render - calling get_permissions()' );
         $permissions = $this->plugin->get_permissions( $is_network );
-        // error_log( 'andW Debug Viewer: Admin page render - permissions received: ' . print_r( $permissions, true ) );
 
         wp_enqueue_style(
             'andw-admin',
@@ -395,7 +394,6 @@ class Andw_Admin {
         echo '<button type="button" class="button" id="andw-refresh">' . esc_html__( '再読み込み', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-pause" data-paused="false">' . esc_html__( '一時停止', 'andw-debug-viewer' ) . '</button>';
         // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
-        // error_log( 'andW Debug Viewer: Button rendering - 権限詳細: ' . print_r( $permissions, true ) );
 
         echo '<button type="button" class="button button-secondary" id="andw-clear"';
         if ( empty( $permissions['can_clear'] ) ) {
