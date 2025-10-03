@@ -191,7 +191,7 @@ class Andw_Plugin {
         $override_active = $this->settings->is_production_override_active();
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $temp_session_active = $this->settings->is_temp_session_active();
-        $allow_mutation  = $is_debug_mode || $override_active;
+        $allow_mutation  = $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
 
         // デバッグ出力
         error_log( 'andW Debug Viewer: get_permissions() - environment: ' . $environment );
@@ -212,13 +212,8 @@ class Andw_Plugin {
             'download' => '',
         );
 
-        // WP_DEBUG=false（本番モード）時は一時セッション有効時のみ操作可能
-        if ( $is_production_mode && ! $override_active && ! $temp_session_active ) {
-            $can_clear    = false;
-            $can_download = false;
-            $reasons['clear']    = __( 'WP_DEBUG=false の環境では既定でクリアは無効です。設定から15分間の一時許可を発行できます。', 'andw-debug-viewer' );
-            $reasons['download'] = __( 'WP_DEBUG=false の環境では既定でダウンロードは無効です。', 'andw-debug-viewer' );
-        }
+        // 本番モード時の追加制限（$allow_mutationで既に判定済みなので、このブロックは不要になりました）
+        // WP_DEBUG=false環境でも、temp_logging_activeやtemp_session_activeがあれば$allow_mutationでtrueになる
 
         if ( $download_globally_disabled ) {
             $can_download        = false;
