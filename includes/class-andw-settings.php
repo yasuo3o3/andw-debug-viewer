@@ -26,7 +26,7 @@ class Andw_Settings {
             'default_minutes'            => 5,
             'max_lines'                  => 500,
             'auto_refresh_interval'      => 10,
-            'enable_download'            => false,
+            'enable_download'            => true,
             'allow_site_actions'         => false,
             'production_temp_expiration' => 0,
             'temp_logging_enabled'       => false,
