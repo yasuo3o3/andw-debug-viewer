@@ -1042,7 +1042,7 @@ class Andw_Admin {
         $log_file = WP_CONTENT_DIR . '/debug.log';
         $log_errors = ini_get( 'log_errors' );
         $error_log_setting = ini_get( 'error_log' );
-        $error_reporting_level = error_reporting();
+        $error_reporting_level = ini_get( 'error_reporting' );
 
         // ログ設定（ini_set削除済み）
 
@@ -1117,13 +1117,12 @@ class Andw_Admin {
             WP_Filesystem();
         }
 
-        foreach ( $test_messages as $message ) {
-            // WP_Filesystem APIでファイルに書き込み
-            if ( wp_is_writable( dirname( $log_file ) ) && $wp_filesystem ) {
-                $existing_content = $wp_filesystem->exists( $log_file ) ? $wp_filesystem->get_contents( $log_file ) : '';
-                $new_content = $existing_content . $message . PHP_EOL;
-                $wp_filesystem->put_contents( $log_file, $new_content, FS_CHMOD_FILE );
-            }
+        // WP_Filesystem APIでファイルに書き込み（最適化版）
+        if ( wp_is_writable( dirname( $log_file ) ) && $wp_filesystem ) {
+            $existing_content = $wp_filesystem->exists( $log_file ) ? $wp_filesystem->get_contents( $log_file ) : '';
+            $new_messages = implode( PHP_EOL, $test_messages ) . PHP_EOL;
+            $final_content = $existing_content . $new_messages;
+            $wp_filesystem->put_contents( $log_file, $final_content, FS_CHMOD_FILE );
         }
 
         // リダイレクト先を元のタブに戻す
