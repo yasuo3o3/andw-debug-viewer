@@ -868,6 +868,7 @@ class Andw_Admin {
             is_network_admin() ? network_admin_url( 'admin.php' ) : admin_url( 'admin.php' )
         );
 
+        $redirect = wp_nonce_url( $redirect, 'andw_notice_redirect' );
         wp_safe_redirect( $redirect );
         exit;
     }
@@ -878,6 +879,13 @@ class Andw_Admin {
      * @return void
      */
     private function maybe_render_notice() {
+        // nonce検証
+        if ( ( isset( $_GET['override_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] ) ) ) {
+            if ( empty( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_notice_redirect' ) ) {
+                return;
+            }
+        }
+
         $override_message = isset( $_GET['override_message'] ) ? sanitize_key( $_GET['override_message'] ) : '';
         $temp_logging_message = isset( $_GET['temp_logging_message'] ) ? sanitize_key( $_GET['temp_logging_message'] ) : '';
         $legacy_message = isset( $_GET['andw_message'] ) ? sanitize_key( $_GET['andw_message'] ) : '';
@@ -997,13 +1005,16 @@ class Andw_Admin {
             }
         }
 
-        $redirect_url = add_query_arg(
-            array(
-                'page' => 'andw-debug-viewer',
-                'tab'  => $current_tab,
-                'temp_logging_message' => $message,
+        $redirect_url = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'page' => 'andw-debug-viewer',
+                    'tab'  => $current_tab,
+                    'temp_logging_message' => $message,
+                ),
+                admin_url( 'admin.php' )
             ),
-            admin_url( 'admin.php' )
+            'andw_notice_redirect'
         );
 
         wp_safe_redirect( $redirect_url );
@@ -1118,13 +1129,16 @@ class Andw_Admin {
             }
         }
 
-        $redirect_url = add_query_arg(
-            array(
-                'page' => 'andw-debug-viewer',
-                'tab'  => $current_tab,
-                'temp_logging_message' => 'test_log_success',
+        $redirect_url = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'page' => 'andw-debug-viewer',
+                    'tab'  => $current_tab,
+                    'temp_logging_message' => 'test_log_success',
+                ),
+                admin_url( 'admin.php' )
             ),
-            admin_url( 'admin.php' )
+            'andw_notice_redirect'
         );
 
         wp_safe_redirect( $redirect_url );
