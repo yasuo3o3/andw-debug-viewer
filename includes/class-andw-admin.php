@@ -332,18 +332,20 @@ class Andw_Admin {
      * @return void
      */
     private function render_viewer_tab( array $permissions ) {
-        // WP_DEBUG ベースでの表示
-        $wp_debug_enabled = ! empty( $permissions['wp_debug_enabled'] );
+        // WP_DEBUG_LOG ベースでの表示（ログ出力設定状況で判定）
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
         $environment = isset( $permissions['environment'] ) ? $permissions['environment'] : 'production';
 
-        if ( $wp_debug_enabled ) {
-            $badge_slug  = 'debug';
-            $badge_class = 'andw-badge andw-env-debug';
-            $badge_label = 'DEBUG MODE';
-        } else {
-            $badge_slug  = 'production';
+        if ( $wp_debug_log_enabled ) {
+            // ユーザーがログ出力を設定している → 既存ログは保護が必要（警告色）
+            $badge_slug  = 'wordpress-debug';
             $badge_class = 'andw-badge andw-env-production';
-            $badge_label = 'PRODUCTION';
+            $badge_label = 'WP_DEBUG_LOG 出力設定';
+        } else {
+            // ユーザーがログ出力を設定していない → 一時ログは安全に削除可能（安全色）
+            $badge_slug  = 'no-debug-log';
+            $badge_class = 'andw-badge andw-env-debug';
+            $badge_label = 'WP_DEBUG_LOG 設定なし';
         }
 
         $max_lines   = isset( $permissions['defaults']['max_lines'] ) ? (int) $permissions['defaults']['max_lines'] : 1000;
