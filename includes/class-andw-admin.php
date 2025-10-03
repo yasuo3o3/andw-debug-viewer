@@ -373,10 +373,14 @@ class Andw_Admin {
         $clear_disabled = empty( $permissions['can_clear'] ) ? ' disabled' : '';
         $download_disabled = empty( $permissions['can_download'] ) ? ' disabled' : '';
 
+        error_log( 'andW Debug Viewer: Button rendering - 権限詳細: ' . print_r( $permissions, true ) );
         error_log( 'andW Debug Viewer: Button rendering - can_clear: ' . ( empty( $permissions['can_clear'] ) ? 'false' : 'true' ) );
         error_log( 'andW Debug Viewer: Button rendering - can_download: ' . ( empty( $permissions['can_download'] ) ? 'false' : 'true' ) );
         error_log( 'andW Debug Viewer: Button rendering - clear_disabled: "' . $clear_disabled . '"' );
         error_log( 'andW Debug Viewer: Button rendering - download_disabled: "' . $download_disabled . '"' );
+        error_log( 'andW Debug Viewer: Button rendering - is_production: ' . ( ! empty( $permissions['is_production'] ) ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: Button rendering - override_active: ' . ( ! empty( $permissions['override_active'] ) ? 'true' : 'false' ) );
+        error_log( 'andW Debug Viewer: Button rendering - temp_session_active: ' . ( ! empty( $permissions['temp_session_active'] ) ? 'true' : 'false' ) );
 
         echo '<button type="button" class="button button-secondary" id="andw-clear"' . $clear_disabled . '>' . esc_html__( 'ログをクリア', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-download"' . $download_disabled . '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
@@ -651,16 +655,32 @@ class Andw_Admin {
         $state = isset( $_POST['state'] ) ? sanitize_key( $_POST['state'] ) : 'enable';
         $settings_handler = $this->plugin->get_settings_handler();
 
+        error_log( 'andW Debug Viewer: handle_toggle_production_override() - state: ' . $state );
+        error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行前の権限確認' );
+
+        // 現在の権限状態を確認
+        $current_permissions = $this->plugin->get_permissions();
+        error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行前の権限: ' . print_r( $current_permissions, true ) );
+
         if ( 'disable' === $state ) {
+            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 本番環境一時許可を無効化' );
             $settings = $settings_handler->get_settings();
             $settings['production_temp_expiration'] = 0;
-            update_option( Andw_Settings::OPTION_NAME, $settings, false );
+            $result = update_option( Andw_Settings::OPTION_NAME, $settings, false );
+            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 無効化結果: ' . ( $result ? 'SUCCESS' : 'FAILED' ) );
             $message = 'prod_disabled';
         } else {
+            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 本番環境一時許可を有効化（15分間）' );
             $timestamp = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
-            $settings_handler->set_production_override_expiration( $timestamp );
+            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 設定期限: ' . $timestamp . ' (現在時刻: ' . current_time( 'timestamp' ) . ')' );
+            $result = $settings_handler->set_production_override_expiration( $timestamp );
+            error_log( 'andW Debug Viewer: handle_toggle_production_override() - 有効化結果: ' . print_r( $result, true ) );
             $message = 'prod_enabled';
         }
+
+        // 設定後の権限状態を確認
+        $after_permissions = $this->plugin->get_permissions();
+        error_log( 'andW Debug Viewer: handle_toggle_production_override() - 実行後の権限: ' . print_r( $after_permissions, true ) );
 
         $redirect = add_query_arg(
             array(
