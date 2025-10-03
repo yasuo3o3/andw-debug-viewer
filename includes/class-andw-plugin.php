@@ -172,33 +172,52 @@ class Andw_Plugin {
             return;
         }
 
-        // 無限ループ防止のため、1回のリクエスト中は1回のみ実行
-        static $session_checked = false;
-        if ( $session_checked ) {
-            return;
-        }
-        $session_checked = true;
-
-        // セッションファイルが既に存在する場合はチェックのみ
+        // 無限ループ防止：セッションファイルが既に存在し有効な場合は何もしない
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
         if ( file_exists( $session_file ) ) {
-            // 期限切れチェック（ログ出力なしで簡単チェック）
-            $session_content = file_get_contents( $session_file );
-            $session_data = json_decode( $session_content, true );
+            $session_content = @file_get_contents( $session_file );
+            if ( $session_content ) {
+                $session_data = @json_decode( $session_content, true );
+                if ( $session_data && isset( $session_data['expires_at'] ) ) {
+                    $expires_at = (int) $session_data['expires_at'];
+                    $current_time = time();
 
-            if ( $session_data && isset( $session_data['expires_at'] ) ) {
-                $expires_at = (int) $session_data['expires_at'];
-                $current_time = time();
+                    // まだ有効期限内なら何もしない
+                    if ( $expires_at > $current_time ) {
+                        return;
+                    }
 
-                if ( $expires_at <= $current_time ) {
-                    // 期限切れの場合は新しいセッションを作成
-                    $this->settings->create_wordpress_debug_session();
+                    // 期限切れの場合のみ新規作成（ログ出力は最小限）
+                    $this->create_wordpress_debug_session_silent();
+                    return;
                 }
             }
-        } else {
-            // セッションファイルが存在しない場合は新規作成
-            $this->settings->create_wordpress_debug_session();
         }
+
+        // セッションファイルが存在しない場合のみ新規作成
+        $this->create_wordpress_debug_session_silent();
+    }
+
+    /**
+     * ログ出力を抑制したWordPress debug セッション作成
+     *
+     * @return void
+     */
+    private function create_wordpress_debug_session_silent() {
+        // セッションデータを直接作成（ログ出力なし）
+        $session_data = array(
+            'created_at'   => time(),
+            'expires_at'   => time() + ( 15 * MINUTE_IN_SECONDS ),
+            'session_type' => 'wordpress_debug',
+            'permissions'  => array(
+                'safe_to_clear'     => false,
+                'safe_to_download'  => true,
+                'created_by_plugin' => false,
+            ),
+        );
+
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        @file_put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), LOCK_EX );
     }
 
     /**

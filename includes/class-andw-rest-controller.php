@@ -110,10 +110,8 @@ class Andw_Rest_Controller extends WP_REST_Controller {
         $can_network = current_user_can( 'manage_network_options' );
         $result = $can_manage || $can_network;
 
-        error_log( 'andW Debug Viewer: REST API check_permissions called' );
-        error_log( 'andW Debug Viewer: REST API - can_manage_options: ' . ( $can_manage ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: REST API - can_manage_network_options: ' . ( $can_network ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: REST API - permission result: ' . ( $result ? 'true' : 'false' ) );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: REST API check_permissions called' );
 
         return $result;
     }
@@ -146,14 +144,15 @@ class Andw_Rest_Controller extends WP_REST_Controller {
      * @return WP_REST_Response|WP_Error
      */
     public function get_tail( WP_REST_Request $request ) {
-        error_log( 'andW Debug Viewer: REST API get_tail called' );
+        // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // error_log( 'andW Debug Viewer: REST API get_tail called' );
 
         $mode  = $request->get_param( 'mode' );
         $value = $request->get_param( 'value' );
         $settings = $this->plugin->get_settings();
         $max_lines = (int) $settings['max_lines'];
 
-        error_log( 'andW Debug Viewer: REST API - mode: ' . $mode . ', value: ' . $value );
+        // error_log( 'andW Debug Viewer: REST API - mode: ' . $mode . ', value: ' . $value );
 
         if ( 'minutes' === $mode ) {
             $minutes = ( null !== $value ) ? (int) $value : (int) $settings['default_minutes'];
@@ -170,14 +169,14 @@ class Andw_Rest_Controller extends WP_REST_Controller {
             if ( $lines > $max_lines ) {
                 $lines = $max_lines;
             }
-            error_log( 'andW Debug Viewer: REST API - calling read_tail_by_lines with lines: ' . $lines );
+            // error_log( 'andW Debug Viewer: REST API - calling read_tail_by_lines with lines: ' . $lines );
             $result = $this->plugin->get_log_reader()->read_tail_by_lines( $lines, $max_lines );
         }
 
-        error_log( 'andW Debug Viewer: REST API - result type: ' . ( is_wp_error( $result ) ? 'WP_Error' : gettype( $result ) ) );
+        // error_log( 'andW Debug Viewer: REST API - result type: ' . ( is_wp_error( $result ) ? 'WP_Error' : gettype( $result ) ) );
 
         if ( is_wp_error( $result ) ) {
-            error_log( 'andW Debug Viewer: REST API - WP_Error: ' . $result->get_error_message() );
+            // error_log( 'andW Debug Viewer: REST API - WP_Error: ' . $result->get_error_message() );
             return $this->prepare_error_response( $result );
         }
 
