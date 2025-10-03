@@ -789,7 +789,7 @@ class Andw_Admin {
 
         echo '<div class="andw-production-override-compact" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 10px; margin: 10px 0;">';
         echo '<details style="cursor: pointer;">';
-        echo '<summary style="font-weight: bold; color: #856404;">🔒 WP_DEBUG=false 環境での危険な操作</summary>';
+        echo '<summary style="font-weight: bold; color: #856404;">🔒 WP_DEBUG=True 環境での危険な操作</summary>';
         echo '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffeaa7;">';
 
         if ( $override_active && $expires ) {
