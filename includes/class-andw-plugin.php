@@ -95,6 +95,9 @@ class Andw_Plugin {
         add_action( 'init', array( $this, 'maybe_apply_temp_logging' ) );
         add_action( 'admin_init', array( $this, 'maybe_apply_temp_logging' ) );
         add_action( 'wp_loaded', array( $this, 'maybe_apply_temp_logging' ) );
+
+        // WP_DEBUG_LOG=true時の自動セッション作成
+        add_action( 'init', array( $this, 'ensure_wordpress_debug_session' ), 5 );
     }
 
     /**
@@ -156,6 +159,35 @@ class Andw_Plugin {
     }
 
     /**
+     * WP_DEBUG_LOG=true時の自動セッション作成処理
+     *
+     * @return void
+     */
+    public function ensure_wordpress_debug_session() {
+        // WP_DEBUG_LOG=true時のみ実行
+        $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        if ( ! $wp_debug_enabled || ! $wp_debug_log_enabled ) {
+            return;
+        }
+
+        // セッションファイルが既に存在する場合はチェックのみ
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        if ( file_exists( $session_file ) ) {
+            // 期限切れチェック
+            $session = $this->settings->get_active_session();
+            if ( ! $session ) {
+                // 期限切れの場合は新しいセッションを作成
+                $this->settings->create_wordpress_debug_session();
+            }
+        } else {
+            // セッションファイルが存在しない場合は新規作成
+            $this->settings->create_wordpress_debug_session();
+        }
+    }
+
+    /**
      * Retrieve aggregated settings array.
      *
      * @return array
@@ -193,15 +225,13 @@ class Andw_Plugin {
         $temp_session_active = $this->settings->is_temp_session_active();
         $allow_mutation  = $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
 
-        // デバッグ出力
-        error_log( 'andW Debug Viewer: get_permissions() - environment: ' . $environment );
-        error_log( 'andW Debug Viewer: get_permissions() - wp_debug_enabled: ' . ( $wp_debug_enabled ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - is_debug_mode: ' . ( $is_debug_mode ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - is_production_mode: ' . ( $is_production_mode ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - override_active: ' . ( $override_active ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - temp_logging_active: ' . ( $temp_logging_active ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - temp_session_active: ' . ( $temp_session_active ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - allow_mutation: ' . ( $allow_mutation ? 'true' : 'false' ) );
+        // デバッグ出力（無限ログ防止のため、条件付きで出力）
+        static $debug_logged = false;
+        if ( ! $debug_logged && ( current_user_can( 'manage_options' ) || wp_doing_ajax() ) ) {
+            error_log( 'andW Debug Viewer: get_permissions() - wp_debug_enabled: ' . ( $wp_debug_enabled ? 'true' : 'false' ) );
+            error_log( 'andW Debug Viewer: get_permissions() - allow_mutation: ' . ( $allow_mutation ? 'true' : 'false' ) );
+            $debug_logged = true;
+        }
 
         $can_clear    = $allow_mutation;
         $can_download = $allow_mutation && ! empty( $settings['enable_download'] );
@@ -212,7 +242,6 @@ class Andw_Plugin {
             $session_safe_to_download = ! empty( $session['permissions']['safe_to_download'] );
             if ( $session_safe_to_download && $allow_mutation ) {
                 $can_download = true; // セッションでダウンロード許可されている場合は強制的に有効
-                error_log( 'andW Debug Viewer: Download enabled by session permissions' );
             }
         }
 
@@ -239,10 +268,10 @@ class Andw_Plugin {
             }
         }
 
-        // 最終権限結果をログ出力
-        error_log( 'andW Debug Viewer: get_permissions() - can_clear: ' . ( $can_clear ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - can_download: ' . ( $can_download ? 'true' : 'false' ) );
-        error_log( 'andW Debug Viewer: get_permissions() - reasons: ' . print_r( $reasons, true ) );
+        // 最終権限結果をログ出力（デバッグ時のみ）
+        if ( ! $debug_logged && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'andW Debug Viewer: get_permissions() - final results logged once per session' );
+        }
 
         return array(
             'environment'                => $environment,

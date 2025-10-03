@@ -479,22 +479,25 @@ class Andw_Settings {
     public function get_active_session() {
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
-        error_log( 'andW Debug Viewer: get_active_session() - session_file: ' . $session_file );
-        error_log( 'andW Debug Viewer: get_active_session() - file_exists: ' . ( file_exists( $session_file ) ? 'true' : 'false' ) );
+        // 無限ログ防止のため、詳細なログ出力を抑制
+        static $logged_session_check = false;
 
         if ( ! file_exists( $session_file ) ) {
-            error_log( 'andW Debug Viewer: get_active_session() - セッションファイルが存在しません' );
+            if ( ! $logged_session_check ) {
+                error_log( 'andW Debug Viewer: セッションファイルが存在しません（初回チェック）' );
+                $logged_session_check = true;
+            }
             return false;
         }
 
         $session_content = file_get_contents( $session_file );
-        error_log( 'andW Debug Viewer: get_active_session() - session_content: ' . $session_content );
-
         $session_data = json_decode( $session_content, true );
-        error_log( 'andW Debug Viewer: get_active_session() - session_data: ' . print_r( $session_data, true ) );
 
         if ( ! $session_data || ! isset( $session_data['expires_at'] ) ) {
-            error_log( 'andW Debug Viewer: get_active_session() - 不正なセッションデータ' );
+            if ( ! $logged_session_check ) {
+                error_log( 'andW Debug Viewer: 不正なセッションデータ（初回チェック）' );
+                $logged_session_check = true;
+            }
             return false;
         }
 
@@ -502,9 +505,12 @@ class Andw_Settings {
         $expires_at = (int) $session_data['expires_at'];
         $is_active = ( $expires_at > $current_time );
 
-        error_log( 'andW Debug Viewer: get_active_session() - current_time: ' . $current_time );
-        error_log( 'andW Debug Viewer: get_active_session() - expires_at: ' . $expires_at );
-        error_log( 'andW Debug Viewer: get_active_session() - is_active: ' . ( $is_active ? 'true' : 'false' ) );
+        // セッション状態が変化した時のみログ出力
+        static $last_session_state = null;
+        if ( $last_session_state !== $is_active ) {
+            error_log( 'andW Debug Viewer: セッション状態変化: ' . ( $is_active ? 'アクティブ' : '期限切れ' ) );
+            $last_session_state = $is_active;
+        }
 
         return $is_active ? $session_data : false;
     }
