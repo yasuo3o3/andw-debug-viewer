@@ -1047,7 +1047,6 @@ class Andw_Admin {
 
         // PHPの設定詳細
         $display_errors = ini_get( 'display_errors' );
-        $error_reporting_level = error_reporting();
 
         $debug_info = "[$timestamp] andW Debug Viewer: 完全デバッグ情報";
         $debug_info .= " | 環境: $environment";
