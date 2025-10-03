@@ -259,13 +259,13 @@ class Andw_Plugin {
         $temp_session_active = $this->settings->is_temp_session_active();
         $allow_mutation  = $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
 
-        // デバッグ出力（無限ログ防止のため、条件付きで出力）
-        static $debug_logged = false;
-        if ( ! $debug_logged && ( current_user_can( 'manage_options' ) || wp_doing_ajax() ) ) {
-            error_log( 'andW Debug Viewer: get_permissions() - wp_debug_enabled: ' . ( $wp_debug_enabled ? 'true' : 'false' ) );
-            error_log( 'andW Debug Viewer: get_permissions() - allow_mutation: ' . ( $allow_mutation ? 'true' : 'false' ) );
-            $debug_logged = true;
-        }
+        // ログ出力を完全に抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // static $debug_logged = false;
+        // if ( ! $debug_logged && ( current_user_can( 'manage_options' ) || wp_doing_ajax() ) ) {
+        //     error_log( 'andW Debug Viewer: get_permissions() - wp_debug_enabled: ' . ( $wp_debug_enabled ? 'true' : 'false' ) );
+        //     error_log( 'andW Debug Viewer: get_permissions() - allow_mutation: ' . ( $allow_mutation ? 'true' : 'false' ) );
+        //     $debug_logged = true;
+        // }
 
         $can_clear    = $allow_mutation;
         $can_download = $allow_mutation && ! empty( $settings['enable_download'] );
@@ -302,10 +302,10 @@ class Andw_Plugin {
             }
         }
 
-        // 最終権限結果をログ出力（デバッグ時のみ）
-        if ( ! $debug_logged && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'andW Debug Viewer: get_permissions() - final results logged once per session' );
-        }
+        // ログ出力を完全に抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // if ( ! $debug_logged && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+        //     error_log( 'andW Debug Viewer: get_permissions() - final results logged once per session' );
+        // }
 
         return array(
             'environment'                => $environment,

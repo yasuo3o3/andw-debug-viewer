@@ -505,12 +505,12 @@ class Andw_Settings {
         $expires_at = (int) $session_data['expires_at'];
         $is_active = ( $expires_at > $current_time );
 
-        // セッション状態が変化した時のみログ出力
-        static $last_session_state = null;
-        if ( $last_session_state !== $is_active ) {
-            error_log( 'andW Debug Viewer: セッション状態変化: ' . ( $is_active ? 'アクティブ' : '期限切れ' ) );
-            $last_session_state = $is_active;
-        }
+        // ログ出力を完全に抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
+        // static $last_session_state = null;
+        // if ( $last_session_state !== $is_active ) {
+        //     error_log( 'andW Debug Viewer: セッション状態変化: ' . ( $is_active ? 'アクティブ' : '期限切れ' ) );
+        //     $last_session_state = $is_active;
+        // }
 
         return $is_active ? $session_data : false;
     }
