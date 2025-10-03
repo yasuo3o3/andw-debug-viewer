@@ -393,14 +393,20 @@ class Andw_Admin {
         echo '<div class="andw-actions">';
         echo '<button type="button" class="button" id="andw-refresh">' . esc_html__( '再読み込み', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-pause" data-paused="false">' . esc_html__( '一時停止', 'andw-debug-viewer' ) . '</button>';
-        $clear_disabled = empty( $permissions['can_clear'] ) ? ' disabled' : '';
-        $download_disabled = empty( $permissions['can_download'] ) ? ' disabled' : '';
-
         // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
         // error_log( 'andW Debug Viewer: Button rendering - 権限詳細: ' . print_r( $permissions, true ) );
 
-        echo '<button type="button" class="button button-secondary" id="andw-clear"' . $clear_disabled . '>' . esc_html__( 'ログをクリア', 'andw-debug-viewer' ) . '</button>';
-        echo '<button type="button" class="button" id="andw-download"' . $download_disabled . '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
+        echo '<button type="button" class="button button-secondary" id="andw-clear"';
+        if ( empty( $permissions['can_clear'] ) ) {
+            echo ' disabled="disabled"';
+        }
+        echo '>' . esc_html__( 'ログをクリア', 'andw-debug-viewer' ) . '</button>';
+
+        echo '<button type="button" class="button" id="andw-download"';
+        if ( empty( $permissions['can_download'] ) ) {
+            echo ' disabled="disabled"';
+        }
+        echo '>' . esc_html__( 'ダウンロード', 'andw-debug-viewer' ) . '</button>';
         echo '</div>';
         echo '</header>';
 
@@ -642,9 +648,9 @@ class Andw_Admin {
                 echo '<strong>🟢 一時ログ出力 有効中</strong>';
                 if ( ! empty( $permissions['temp_logging_expires'] ) ) {
                     $remaining = $permissions['temp_logging_expires'] - current_time( 'timestamp' );
-                    $minutes = max( 0, floor( $remaining / 60 ) );
-                    $seconds = max( 0, $remaining % 60 );
-                    echo ' - 残り時間: <span class="andw-countdown" id="temp-logging-countdown">' . sprintf( '%02d:%02d', $minutes, $seconds ) . '</span>';
+                    $minutes = max( 0, absint( floor( $remaining / 60 ) ) );
+                    $seconds = max( 0, absint( $remaining % 60 ) );
+                    echo ' - 残り時間: <span class="andw-countdown" id="temp-logging-countdown">' . esc_html( sprintf( '%02d:%02d', $minutes, $seconds ) ) . '</span>';
                 }
                 echo '</div><br>';
             } elseif ( $temp_session_active ) {
