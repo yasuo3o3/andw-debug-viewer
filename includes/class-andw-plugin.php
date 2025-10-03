@@ -265,7 +265,9 @@ class Andw_Plugin {
         if ( $wp_debug_log_enabled ) {
             $allow_mutation = $override_active || $temp_session_active;
         } else {
-            $allow_mutation = $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
+            // WP_DEBUG_LOG=false時: debug.logが存在すれば常に有効
+            $debug_log_exists = file_exists( WP_CONTENT_DIR . '/debug.log' );
+            $allow_mutation = $debug_log_exists || $is_debug_mode || $override_active || $temp_logging_active || $temp_session_active;
         }
 
         // ログ出力を完全に抑制（WP_DEBUG_LOG=true環境での無限ループ防止）

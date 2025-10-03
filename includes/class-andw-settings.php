@@ -581,16 +581,24 @@ class Andw_Settings {
             $created_by_plugin = $was_created_by_plugin;
         }
 
-        // debug.logを削除するかどうか判断
+        // debug.logを削除するかどうか判断（WP_DEBUG_LOG=false環境では積極的に削除）
         $debug_log_path = WP_CONTENT_DIR . '/debug.log';
-        if ( $safe_to_clear && $created_by_plugin && file_exists( $debug_log_path ) ) {
-            $deleted = unlink( $debug_log_path );
-            error_log( 'andW Debug Viewer: Deleted plugin-created debug.log: ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
-        } elseif ( file_exists( $debug_log_path ) ) {
-            if ( ! $safe_to_clear ) {
-                error_log( 'andW Debug Viewer: debug.log exists but safe_to_clear=false - keeping it' );
-            } elseif ( ! $created_by_plugin ) {
-                error_log( 'andW Debug Viewer: debug.log exists but was not created by plugin - keeping it' );
+        $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+
+        if ( file_exists( $debug_log_path ) ) {
+            if ( ! $wp_debug_log_enabled && $safe_to_clear ) {
+                // WP_DEBUG_LOG=false環境では、一時ログ期限切れ時に削除
+                $deleted = unlink( $debug_log_path );
+                error_log( 'andW Debug Viewer: Deleted temp debug.log (WP_DEBUG_LOG=false): ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
+            } elseif ( $wp_debug_log_enabled ) {
+                // WP_DEBUG_LOG=true環境では削除しない
+                error_log( 'andW Debug Viewer: debug.log exists but WP_DEBUG_LOG=true - keeping it' );
+            } elseif ( $safe_to_clear && $created_by_plugin ) {
+                // プラグインが作成したものは削除
+                $deleted = unlink( $debug_log_path );
+                error_log( 'andW Debug Viewer: Deleted plugin-created debug.log: ' . ( $deleted ? 'SUCCESS' : 'FAILED' ) );
+            } else {
+                error_log( 'andW Debug Viewer: debug.log exists but conditions not met for deletion' );
             }
         } else {
             error_log( 'andW Debug Viewer: debug.log does not exist - nothing to delete' );
