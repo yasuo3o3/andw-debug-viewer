@@ -172,14 +172,28 @@ class Andw_Plugin {
             return;
         }
 
+        // 無限ループ防止のため、1回のリクエスト中は1回のみ実行
+        static $session_checked = false;
+        if ( $session_checked ) {
+            return;
+        }
+        $session_checked = true;
+
         // セッションファイルが既に存在する場合はチェックのみ
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
         if ( file_exists( $session_file ) ) {
-            // 期限切れチェック
-            $session = $this->settings->get_active_session();
-            if ( ! $session ) {
-                // 期限切れの場合は新しいセッションを作成
-                $this->settings->create_wordpress_debug_session();
+            // 期限切れチェック（ログ出力なしで簡単チェック）
+            $session_content = file_get_contents( $session_file );
+            $session_data = json_decode( $session_content, true );
+
+            if ( $session_data && isset( $session_data['expires_at'] ) ) {
+                $expires_at = (int) $session_data['expires_at'];
+                $current_time = time();
+
+                if ( $expires_at <= $current_time ) {
+                    // 期限切れの場合は新しいセッションを作成
+                    $this->settings->create_wordpress_debug_session();
+                }
             }
         } else {
             // セッションファイルが存在しない場合は新規作成

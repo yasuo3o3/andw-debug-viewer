@@ -32,6 +32,10 @@
     background-color: #d63638;
 }
 
+.andw-env-debug {
+    background-color: #008a20;
+}
+
 .andw-env-staging {
     background-color: #ffb900;
 }
