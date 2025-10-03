@@ -1042,6 +1042,7 @@ class Andw_Admin {
         $log_file = WP_CONTENT_DIR . '/debug.log';
         $log_errors = ini_get( 'log_errors' );
         $error_log_setting = ini_get( 'error_log' );
+        $error_reporting_level = error_reporting();
 
         // ログ設定（ini_set削除済み）
 
@@ -1109,10 +1110,19 @@ class Andw_Admin {
             "[$timestamp] andW Debug Viewer: テスト警告メッセージ - WARNING レベル"
         );
 
+        // WordPress Filesystem APIを初期化
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
         foreach ( $test_messages as $message ) {
-            // ファイルに直接書き込みも試行
-            if ( wp_is_writable( dirname( $log_file ) ) ) {
-                file_put_contents( $log_file, $message . PHP_EOL, FILE_APPEND | LOCK_EX );
+            // WP_Filesystem APIでファイルに書き込み
+            if ( wp_is_writable( dirname( $log_file ) ) && $wp_filesystem ) {
+                $existing_content = $wp_filesystem->exists( $log_file ) ? $wp_filesystem->get_contents( $log_file ) : '';
+                $new_content = $existing_content . $message . PHP_EOL;
+                $wp_filesystem->put_contents( $log_file, $new_content, FS_CHMOD_FILE );
             }
         }
 
