@@ -234,7 +234,7 @@ class Andw_Settings {
      */
     public function is_temp_logging_active() {
         $settings = $this->get_settings();
-        return ! empty( $settings['temp_logging_enabled'] ) && ! empty( $settings['temp_logging_expiration'] ) && $settings['temp_logging_expiration'] > current_time( 'timestamp' );
+        return ! empty( $settings['temp_logging_enabled'] ) && ! empty( $settings['temp_logging_expiration'] ) && $settings['temp_logging_expiration'] > time();
     }
 
     /**
@@ -244,7 +244,7 @@ class Andw_Settings {
      * @return bool
      */
     public function is_temp_logging_expired( $expiration ) {
-        return empty( $expiration ) || $expiration <= current_time( 'timestamp' );
+        return empty( $expiration ) || $expiration <= time();
     }
 
     /**
@@ -271,12 +271,12 @@ class Andw_Settings {
         // 現在の設定を記録（print_r削除）
 
         $settings['temp_logging_enabled'] = true;
-        $settings['temp_logging_expiration'] = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
+        $settings['temp_logging_expiration'] = time() + ( 15 * MINUTE_IN_SECONDS );
 
         // debug.logがプラグインによって作成される場合の記録
         if ( ! $debug_log_existed_before ) {
             $settings['debug_log_created_by_plugin'] = true;
-            $settings['debug_log_creation_timestamp'] = current_time( 'timestamp' );
+            $settings['debug_log_creation_timestamp'] = time();
         }
 
         // 既存設定を確認
@@ -342,7 +342,7 @@ class Andw_Settings {
             // 代替手段: 直接設定を更新
             $manual_save = array(
                 'temp_logging_enabled' => true,
-                'temp_logging_expiration' => current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS ),
+                'temp_logging_expiration' => time() + ( 15 * MINUTE_IN_SECONDS ),
             );
             $result = add_option( self::OPTION_NAME . '_temp', $manual_save, '', 'no' );
 
