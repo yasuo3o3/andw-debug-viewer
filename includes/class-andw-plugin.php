@@ -173,7 +173,17 @@ class Andw_Plugin {
         );
 
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
-        @file_put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), LOCK_EX );
+
+        // WordPress Filesystem APIを使用
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        if ( $wp_filesystem ) {
+            $wp_filesystem->put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), FS_CHMOD_FILE );
+        }
     }
 
     /**

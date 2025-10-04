@@ -314,7 +314,18 @@ class Andw_Settings {
             $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
             $log_message = '[' . wp_date( 'Y-m-d H:i:s', time() ) . '] andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . wp_date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
             if ( wp_is_writable( dirname( $log_file ) ) || wp_is_writable( $log_file ) ) {
-                file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
+                // WordPress Filesystem APIを使用
+                global $wp_filesystem;
+                if ( empty( $wp_filesystem ) ) {
+                    require_once ABSPATH . 'wp-admin/includes/file.php';
+                    WP_Filesystem();
+                }
+
+                if ( $wp_filesystem ) {
+                    $existing_content = $wp_filesystem->exists( $log_file ) ? $wp_filesystem->get_contents( $log_file ) : '';
+                    $new_content = $existing_content . $log_message . PHP_EOL;
+                    $wp_filesystem->put_contents( $log_file, $new_content, FS_CHMOD_FILE );
+                }
             }
             // 設定が正しく保存されたか確認
             $saved_settings = $this->get_settings();
@@ -345,7 +356,18 @@ class Andw_Settings {
                 $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
                 $log_message = '[' . wp_date( 'Y-m-d H:i:s', time() ) . '] andW Debug Viewer: ログ出力を一時的に有効化しました（設定保存に問題がある可能性があります）';
                 if ( wp_is_writable( dirname( $log_file ) ) || wp_is_writable( $log_file ) ) {
-                    file_put_contents( $log_file, $log_message . PHP_EOL, FILE_APPEND | LOCK_EX );
+                    // WordPress Filesystem APIを使用
+                    global $wp_filesystem;
+                    if ( empty( $wp_filesystem ) ) {
+                        require_once ABSPATH . 'wp-admin/includes/file.php';
+                        WP_Filesystem();
+                    }
+
+                    if ( $wp_filesystem ) {
+                        $existing_content = $wp_filesystem->exists( $log_file ) ? $wp_filesystem->get_contents( $log_file ) : '';
+                        $new_content = $existing_content . $log_message . PHP_EOL;
+                        $wp_filesystem->put_contents( $log_file, $new_content, FS_CHMOD_FILE );
+                    }
                 }
 
                 // 強制的に成功とみなす
@@ -440,7 +462,17 @@ class Andw_Settings {
 
         $session_file = WP_CONTENT_DIR . '/andw-session.json';
 
-        $result = file_put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), LOCK_EX );
+        // WordPress Filesystem APIを使用
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        $result = false;
+        if ( $wp_filesystem ) {
+            $result = $wp_filesystem->put_contents( $session_file, json_encode( $session_data, JSON_PRETTY_PRINT ), FS_CHMOD_FILE );
+        }
     }
 
     /**

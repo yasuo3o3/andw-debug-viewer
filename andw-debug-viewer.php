@@ -10,14 +10,14 @@
  * License: GPLv2 or later
  * Text Domain: andw-debug-viewer
  * Requires at least: 6.0
- * Requires PHP: 7.4
+ * Requires PHP: 8.1
  *
  * @package andw-debug-viewer
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ANDW_VERSION', '0.01' );
+define( 'ANDW_VERSION', '0.0.1' );
 define( 'ANDW_PLUGIN_FILE', __FILE__ );
 define( 'ANDW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ANDW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
