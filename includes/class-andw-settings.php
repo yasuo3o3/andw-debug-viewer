@@ -614,8 +614,11 @@ class Andw_Settings {
             }
         }
 
-        // WordPressオプションから一時ログ設定をクリア
-        $settings = $this->get_settings();
+        // WordPressオプションから一時ログ設定をクリア（無限ループ防止のため直接get_optionを使用）
+        $settings = get_option( self::OPTION_NAME, $this->get_defaults() );
+        if ( ! is_array( $settings ) ) {
+            $settings = $this->get_defaults();
+        }
         $settings['temp_logging_enabled'] = false;
         $settings['temp_logging_expiration'] = 0;
         $settings['debug_log_created_by_plugin'] = false;
