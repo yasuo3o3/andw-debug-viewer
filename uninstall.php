@@ -20,7 +20,7 @@ delete_option( 'andw_settings_temp' );
 // Remove session files.
 $session_file = WP_CONTENT_DIR . '/andw-session.json';
 if ( file_exists( $session_file ) ) {
-    unlink( $session_file );
+    wp_delete_file( $session_file );
 }
 
 // For multisite installations, also clean up network-wide data if needed.
