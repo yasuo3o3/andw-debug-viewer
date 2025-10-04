@@ -592,9 +592,9 @@ class Andw_Settings {
 
         // フォールバック: セッションファイルがない場合は従来の方法で確認
         if ( ! $session_data ) {
-            $settings = $this->get_settings();
-            $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
-            $was_created_by_plugin = ! empty( $settings['debug_log_created_by_plugin'] );
+            $current_settings = get_option( self::OPTION_NAME, array() );
+            $was_temp_active = ! empty( $current_settings['temp_logging_enabled'] );
+            $was_created_by_plugin = ! empty( $current_settings['debug_log_created_by_plugin'] );
 
             $safe_to_clear = $was_temp_active;
             $created_by_plugin = $was_created_by_plugin;
