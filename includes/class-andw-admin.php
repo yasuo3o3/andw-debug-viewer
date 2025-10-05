@@ -369,7 +369,6 @@ class Andw_Admin {
 
         if ( ! empty( $permissions['override_active'] ) && ! empty( $permissions['override_expires'] ) ) {
             $expires = wp_date( 'Y/m/d H:i', (int) $permissions['override_expires'] );
-        if ( $override_active && ! empty( $permissions['override_expires'] ) ) {
             /* translators: %s: expiration date/time. */
             echo '<span class="andw-override-info">' . esc_html( sprintf( __( '一時許可中: %s まで', 'andw-debug-viewer' ), $expires ) ) . '</span>';
         }
@@ -605,7 +604,7 @@ class Andw_Admin {
 
         // 最終的な判定（プラグインの機能は含める）
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
-
+        if ( $actual_logging_works ) {
             if ( $temp_logging_active && $expires ) {
                 /* translators: %s: expiration date/time. */
                 echo '<p>' . esc_html( sprintf( __( '現在、一時ログ出力が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
