@@ -369,6 +369,7 @@ class Andw_Admin {
 
         if ( ! empty( $permissions['override_active'] ) && ! empty( $permissions['override_expires'] ) ) {
             $expires = wp_date( 'Y/m/d H:i', (int) $permissions['override_expires'] );
+        if ( $override_active && ! empty( $permissions['override_expires'] ) ) {
             /* translators: %s: expiration date/time. */
             echo '<span class="andw-override-info">' . esc_html( sprintf( __( '一時許可中: %s まで', 'andw-debug-viewer' ), $expires ) ) . '</span>';
         }
@@ -449,9 +450,6 @@ class Andw_Admin {
     private function render_settings_tab( array $permissions ) {
         echo '<section class="andw-settings">';
 
-        echo '<div class="andw-card">';
-        echo '<h2>' . esc_html__( '設定について', 'andw-debug-viewer' ) . '</h2>';
-        echo '</div>';
 
         echo '<form action="' . esc_url( admin_url( 'options.php' ) ) . '" method="post">';
         settings_fields( 'andw_settings_group' );
@@ -539,9 +537,7 @@ class Andw_Admin {
         $override_active = ! empty( $permissions['override_active'] );
         $expires = ! empty( $permissions['override_expires'] ) ? wp_date( 'Y/m/d H:i', (int) $permissions['override_expires'] ) : '';
 
-        echo '<div class="andw-card">';
-        echo '<h2>' . esc_html__( 'WP_DEBUG=false 環境で「ログを削除」「ログをダウンロード」の一時許可', 'andw-debug-viewer' ) . '</h2>';
-        if ( $override_active && $expires ) {
+        if ( $override_active && ! empty( $permissions['override_expires'] ) ) {
             /* translators: %s: expiration date/time. */
             echo '<p>' . esc_html( sprintf( __( '現在、一時許可が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
         } else {
@@ -610,9 +606,6 @@ class Andw_Admin {
         // 最終的な判定（プラグインの機能は含める）
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
 
-        echo '<div class="andw-card">';
-        echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
-        if ( $actual_logging_works ) {
             if ( $temp_logging_active && $expires ) {
                 /* translators: %s: expiration date/time. */
                 echo '<p>' . esc_html( sprintf( __( '現在、一時ログ出力が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
@@ -1344,4 +1337,5 @@ class Andw_Admin {
     }
 
 }
+
 
