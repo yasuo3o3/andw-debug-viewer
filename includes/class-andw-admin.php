@@ -729,7 +729,11 @@ class Andw_Admin {
             echo '<details style="margin-top: 10px; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 3px;">';
             echo '<summary style="cursor: pointer; font-weight: bold;">セッションの生データを表示</summary>';
             echo '<pre style="margin: 10px 0 0; padding: 8px; background: #f9f9f9; overflow-x: auto; font-size: 11px;">';
-            echo esc_html( print_r( $session, true ) );
+            $session_output = wp_json_encode( $session, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE );
+            if ( false === $session_output ) {
+                $session_output = '';
+            }
+            echo esc_html( $session_output );
             echo '</pre>';
             echo '</details>';
         }
