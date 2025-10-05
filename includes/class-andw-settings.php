@@ -62,7 +62,22 @@ class Andw_Settings {
             update_option( self::OPTION_NAME, $settings, false );
         }
 
-        if ( $settings['temp_logging_expiration'] && $this->is_temp_logging_expired( (int) $settings['temp_logging_expiration'] ) ) {
+        // 一時ログの期限切れチェック（WordPressオプション）
+        $option_expired = $settings['temp_logging_expiration'] && $this->is_temp_logging_expired( (int) $settings['temp_logging_expiration'] );
+
+        // セッションファイルの期限切れチェック
+        $session_expired = false;
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        if ( file_exists( $session_file ) ) {
+            $session_content = file_get_contents( $session_file );
+            $session_data = json_decode( $session_content, true );
+            if ( $session_data && isset( $session_data['expires_at'] ) && isset( $session_data['session_type'] ) && 'temp_logging' === $session_data['session_type'] ) {
+                $session_expired = $session_data['expires_at'] <= time();
+            }
+        }
+
+        // いずれかが期限切れの場合、クリーンアップ処理を実行
+        if ( $option_expired || $session_expired ) {
             // 期限切れ時の処理
             $this->handle_temp_logging_expiration();
             $settings['temp_logging_enabled'] = false;
@@ -109,7 +124,7 @@ class Andw_Settings {
     public function enable_debug_log_override() {
         $override_data = array(
             'enabled' => true,
-            'expires_at' => time() + ( 15 * MINUTE_IN_SECONDS )
+            'expires_at' => time() + ( 5 * MINUTE_IN_SECONDS ) // テスト用: 15分→5分
         );
 
         return update_option( 'andw_debug_log_override', $override_data, false );
@@ -271,7 +286,7 @@ class Andw_Settings {
         // 現在の設定を記録（print_r削除）
 
         $settings['temp_logging_enabled'] = true;
-        $settings['temp_logging_expiration'] = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
+        $settings['temp_logging_expiration'] = current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ); // テスト用: 15分→5分
 
         // debug.logがプラグインによって作成される場合の記録
         if ( ! $debug_log_existed_before ) {
@@ -342,7 +357,7 @@ class Andw_Settings {
             // 代替手段: 直接設定を更新
             $manual_save = array(
                 'temp_logging_enabled' => true,
-                'temp_logging_expiration' => current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS ),
+                'temp_logging_expiration' => current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ), // テスト用: 15分→5分
             );
             $result = add_option( self::OPTION_NAME . '_temp', $manual_save, '', 'no' );
 
@@ -455,7 +470,7 @@ class Andw_Settings {
         $now = time();
         $session_data = array(
             'created_at'  => $now,
-            'expires_at'  => $now + ( 15 * MINUTE_IN_SECONDS ),
+            'expires_at'  => $now + ( 5 * MINUTE_IN_SECONDS ), // テスト用: 15分→5分
             'session_type' => $type,
             'permissions' => $final_permissions,
         );
@@ -482,6 +497,35 @@ class Andw_Settings {
      */
     private function create_temp_session_file() {
         $this->create_session_file( 'temp_logging' );
+    }
+
+    /**
+     * Explicitly end debug log usage and remove related files.
+     *
+     * @return bool Whether deletion was successful.
+     */
+    public function explicitly_end_debug_log_usage() {
+        $success = true;
+
+        // 一時ログ出力設定を無効化
+        delete_option( self::OPTION_NAME . '_temp' );
+
+        // WP_DEBUG_LOG オーバーライドを無効化
+        delete_option( 'andw_debug_log_override' );
+
+        // セッションファイルの削除
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        if ( file_exists( $session_file ) ) {
+            $success = wp_delete_file( $session_file ) !== false && $success;
+        }
+
+        // debug.log の削除
+        $debug_log_file = WP_CONTENT_DIR . '/debug.log';
+        if ( file_exists( $debug_log_file ) ) {
+            $success = wp_delete_file( $debug_log_file ) !== false && $success;
+        }
+
+        return $success;
     }
 
     /**
@@ -592,9 +636,9 @@ class Andw_Settings {
 
         // フォールバック: セッションファイルがない場合は従来の方法で確認
         if ( ! $session_data ) {
-            $settings = $this->get_settings();
-            $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
-            $was_created_by_plugin = ! empty( $settings['debug_log_created_by_plugin'] );
+            $current_settings = get_option( self::OPTION_NAME, array() );
+            $was_temp_active = ! empty( $current_settings['temp_logging_enabled'] );
+            $was_created_by_plugin = ! empty( $current_settings['debug_log_created_by_plugin'] );
 
             $safe_to_clear = $was_temp_active;
             $created_by_plugin = $was_created_by_plugin;
@@ -614,8 +658,11 @@ class Andw_Settings {
             }
         }
 
-        // WordPressオプションから一時ログ設定をクリア
-        $settings = $this->get_settings();
+        // WordPressオプションから一時ログ設定をクリア（無限ループ防止のため直接get_optionを使用）
+        $settings = get_option( self::OPTION_NAME, $this->get_defaults() );
+        if ( ! is_array( $settings ) ) {
+            $settings = $this->get_defaults();
+        }
         $settings['temp_logging_enabled'] = false;
         $settings['temp_logging_expiration'] = 0;
         $settings['debug_log_created_by_plugin'] = false;

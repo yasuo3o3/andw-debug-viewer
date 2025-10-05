@@ -93,6 +93,33 @@
             .catch(function (error) {
                 const message = error && error.message ? error.message : (strings.downloadError || __('取得に失敗しました。', 'andw-debug-viewer'));
                 setStatus(message, 'error');
+                // ログファイルが存在しない場合、テキストエリアをクリア
+                if (textarea) {
+                    textarea.value = '';
+                }
+                // statsもクリアまたは更新
+                fetchStats();
+                // 緑色の通知ボックスを「⚠️ ログ機能が無効です」に置き換え
+                const notice1 = document.getElementById('andw-log-available-notice');
+                const notice2 = document.getElementById('andw-log-available-notice-2');
+
+                const disabledHTML = '<div style="background: #f9f9f9; border: 1px solid #ddd; padding: 8px 12px; border-radius: 4px;">' +
+                    '<p style="margin: 0 0 8px; font-size: 14px;"><strong>⚠️ ログ機能が無効です</strong> - debug.log ファイルが存在せず、WP_DEBUG_LOG も無効になっています。</p>' +
+                    '<form method="post" action="' + (data.adminPostUrl || '') + '" style="margin: 0;">' +
+                    '<input type="hidden" name="_wpnonce" value="' + (data.toggleNonce || '') + '">' +
+                    '<input type="hidden" name="action" value="andw_toggle_temp_logging">' +
+                    '<input type="hidden" name="state" value="enable">' +
+                    '<input type="hidden" name="current_tab" value="viewer">' +
+                    '<input type="submit" class="button button-primary button-small" value="▶️ 15分間ログ出力を有効化">' +
+                    '</form>' +
+                    '</div>';
+
+                if (notice1) {
+                    notice1.outerHTML = disabledHTML;
+                }
+                if (notice2) {
+                    notice2.outerHTML = disabledHTML;
+                }
             });
     }
 
@@ -144,9 +171,9 @@
             return;
         }
 
-        // 一時環境の場合は確認ダイアログをスキップ
-        const isTempEnvironment = data.environment && data.environment.is_temp_environment;
-        if (!isTempEnvironment) {
+        // 一時ログ環境の場合は確認ダイアログをスキップ
+        const isTempLogging = data.permissions && (data.permissions.temp_logging_active || data.permissions.temp_session_active);
+        if (!isTempLogging) {
             const confirmMessage = strings.clearConfirm || __('本当に debug.log をクリアしますか？', 'andw-debug-viewer');
             if (!window.confirm(confirmMessage)) {
                 return;
@@ -203,10 +230,42 @@
             });
     }
 
+    function handleEndDebugLogUsage() {
+        if (!data.adminPostUrl) {
+            setStatus('エラー: 管理者URLが設定されていません。', 'error');
+            return;
+        }
+
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = data.adminPostUrl;
+
+        const nonceInput = document.createElement('input');
+        nonceInput.type = 'hidden';
+        nonceInput.name = '_wpnonce';
+        nonceInput.value = data.toggleNonce;
+        form.appendChild(nonceInput);
+
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = 'andw_end_debug_log_usage';
+        form.appendChild(actionInput);
+
+        form.style.display = 'none';
+        document.body.appendChild(form);
+        form.submit();
+    }
+
     function attachEvents() {
         refreshBtn.addEventListener('click', function () {
             fetchLog();
         });
+
+        const endDebugLogButton = document.getElementById('andw-end-debug-log');
+        if (endDebugLogButton) {
+            endDebugLogButton.addEventListener('click', handleEndDebugLogUsage);
+        }
 
         pauseBtn.addEventListener('click', function () {
             togglePause();

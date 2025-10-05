@@ -30,6 +30,7 @@ class Andw_Admin {
         add_action( 'admin_post_andw_toggle_prod_override', array( $this, 'handle_toggle_production_override' ) );
         add_action( 'admin_post_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
         add_action( 'admin_post_andw_test_log_output', array( $this, 'handle_test_log_output' ) );
+        add_action( 'admin_post_andw_end_debug_log_usage', array( $this, 'handle_end_debug_log_usage' ) );
 
         // 汎用的なadmin-post.phpデバッグ
         add_action( 'admin_post_nopriv_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
@@ -319,8 +320,9 @@ class Andw_Admin {
             $class = ( $slug === $active ) ? ' nav-tab nav-tab-active' : ' nav-tab';
             $href  = add_query_arg(
                 array(
-                    'page' => 'andw-debug-viewer',
-                    'tab'  => $slug,
+                    'page'      => 'andw-debug-viewer',
+                    'tab'       => $slug,
+                    '_wpnonce'  => wp_create_nonce( 'andw_switch_tab' ),
                 ),
                 $base_url
             );
@@ -458,6 +460,9 @@ class Andw_Admin {
         do_settings_sections( 'andw-settings' );
         submit_button();
         echo '</form>';
+
+        // デバッグ情報セクション
+        $this->render_deletion_debug_info();
 
         echo '</section>';
     }
@@ -609,8 +614,6 @@ class Andw_Admin {
         // 最終的な判定（プラグインの機能は含める）
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
 
-        // ログ状態の記録（error_log削除済み）
-
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( 'WP_DEBUG=false でも一時的にログを有効化', 'andw-debug-viewer' ) . '</h2>';
         if ( $actual_logging_works ) {
@@ -645,7 +648,7 @@ class Andw_Admin {
                 echo '<strong>🟢 一時セッション 有効中</strong> - ログ操作が15分間許可されています';
                 echo '</div><br>';
             } else {
-                echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
+                echo '<div id="andw-log-available-notice" style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
                 if ( $debug_log_exists ) {
                     echo '<strong>✅ debug.log ファイル 利用可能</strong> - 既存のログファイルが見つかりました';
                 } elseif ( $wordpress_debug_log_enabled ) {
@@ -683,8 +686,77 @@ class Andw_Admin {
         submit_button( __( '🧪 テスト用ログ出力', 'andw-debug-viewer' ), 'secondary', 'submit', false );
         echo '</form>';
 
+        // 明示的にデバッグログの使用を終了するボタン
+        // セッションファイルから削除許可情報を取得（期限切れでも取得）
+        $session_file_path = WP_CONTENT_DIR . '/andw-session.json';
+        $session = false;
+        $safe_to_clear = false;
+        $created_by_plugin = false;
+
+        if ( file_exists( $session_file_path ) ) {
+            $session_content = file_get_contents( $session_file_path );
+            $session = json_decode( $session_content, true );
+
+            if ( $session && isset( $session['permissions'] ) ) {
+                $safe_to_clear = ! empty( $session['permissions']['safe_to_clear'] );
+                $created_by_plugin = ! empty( $session['permissions']['created_by_plugin'] );
+            }
+        }
+
+        // 削除ボタンの表示条件: safe_to_clear または created_by_plugin が true
+        $can_end_debug_log = $safe_to_clear || $created_by_plugin;
+
+        if ( $can_end_debug_log ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block; margin-left:10px;">';
+            wp_nonce_field( 'andw_end_debug_log_usage' );
+            echo '<input type="hidden" name="action" value="andw_end_debug_log_usage">';
+            submit_button( __( '🛑 デバッグログ使用終了', 'andw-debug-viewer' ), 'delete', 'submit', false, array( 'id' => 'andw-end-debug-log' ) );
+            echo '</form>';
+        }
 
         echo '</div>';
+
+        // デバッグログ使用終了ボタンの表示ロジック説明
+        echo '<div style="margin-top: 15px; padding: 10px; background: #f0f0f1; border-left: 4px solid #2271b1; font-size: 13px;">';
+        echo '<p style="margin: 0 0 8px; font-weight: bold;">🛑 デバッグログ使用終了ボタンの表示条件:</p>';
+
+        // セッションファイルの存在確認
+        $session_file_path = WP_CONTENT_DIR . '/andw-session.json';
+        $session_file_exists = file_exists( $session_file_path );
+
+        echo '<ul style="margin: 0; padding-left: 20px;">';
+        echo '<li><strong>セッションファイル存在:</strong> ' . ( $session_file_exists ? '<span style="color: #00a32a;">✓ あり</span>' : '<span style="color: #d63638;">✗ なし</span>' ) . '</li>';
+        echo '<li><strong>get_active_session() の戻り値:</strong> ' . ( $session ? '<span style="color: #00a32a;">✓ データあり</span>' : '<span style="color: #d63638;">✗ false/null</span>' ) . '</li>';
+
+        if ( $session ) {
+            echo '<li><strong>セッション permissions 存在:</strong> ' . ( isset( $session['permissions'] ) ? '<span style="color: #00a32a;">✓ あり</span>' : '<span style="color: #d63638;">✗ なし</span>' ) . '</li>';
+            echo '<li><strong>safe_to_clear:</strong> ' . ( $safe_to_clear ? '<span style="color: #00a32a;">✓ true</span>' : '<span style="color: #d63638;">✗ false</span>' ) . '</li>';
+            echo '<li><strong>created_by_plugin:</strong> ' . ( $created_by_plugin ? '<span style="color: #00a32a;">✓ true</span>' : '<span style="color: #d63638;">✗ false</span>' ) . '</li>';
+        }
+
+        echo '</ul>';
+
+        // セッションの生データを表示
+        if ( $session ) {
+            echo '<details style="margin-top: 10px; padding: 8px; background: #fff; border: 1px solid #ddd; border-radius: 3px;">';
+            echo '<summary style="cursor: pointer; font-weight: bold;">セッションの生データを表示</summary>';
+            echo '<pre style="margin: 10px 0 0; padding: 8px; background: #f9f9f9; overflow-x: auto; font-size: 11px;">';
+            echo esc_html( print_r( $session, true ) );
+            echo '</pre>';
+            echo '</details>';
+        }
+
+        echo '<p style="margin: 10px 0 0; padding-top: 10px; border-top: 1px solid #ddd;">';
+        echo '<strong>現在の状態:</strong> ';
+        if ( $can_end_debug_log ) {
+            echo '<span style="color: #00a32a; font-weight: bold;">ボタンが表示されています</span>';
+        } else {
+            echo '<span style="color: #d63638; font-weight: bold;">削除が許可されていないため、ボタンは表示されません</span>';
+        }
+        echo '</p>';
+        echo '<p style="margin: 5px 0 0; font-size: 12px; color: #646970;">このボタンは、セッションの safe_to_clear または created_by_plugin が true の場合に表示されます。</p>';
+        echo '</div>';
+
         echo '</div>';
     }
 
@@ -703,6 +775,10 @@ class Andw_Admin {
         $debug_log_exists = file_exists( $debug_log_path );
         $wordpress_debug_log_enabled = ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG );
         $debug_log_working = $debug_log_exists || $wordpress_debug_log_enabled;
+
+        // andw-session.json が存在する = 一時的なログファイル
+        $session_file_path = WP_CONTENT_DIR . '/andw-session.json';
+        $is_temporary_log = file_exists( $session_file_path );
 
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
 
@@ -723,12 +799,18 @@ class Andw_Admin {
             echo '</form>';
         } elseif ( $debug_log_exists ) {
             // debug.log ファイル存在
-            echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px;">';
-            echo '<strong>✅ debug.log ファイル 利用可能</strong> - 既存のログファイルが見つかりました';
+            echo '<div id="andw-log-available-notice-2" style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px;">';
+            if ( $is_temporary_log && ! $wordpress_debug_log_enabled ) {
+                // 一時的なログファイル（andw-session.json存在 & WP_DEBUG_LOG=false）
+                echo '<strong>✅ debug.log ファイル 利用可能</strong> - 一時的なログファイルを作成しました';
+            } else {
+                // 既存のログファイル（WP_DEBUG_LOG=true または 以前から存在）
+                echo '<strong>✅ debug.log ファイル 利用可能</strong> - 既存のログファイルが見つかりました';
+            }
             echo '</div>';
         } elseif ( $wordpress_debug_log_enabled ) {
             // WP_DEBUG_LOG=true
-            echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px;">';
+            echo '<div id="andw-log-available-notice-2" style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px;">';
             echo '<strong>✅ WordPress デバッグログ 有効</strong> - wp-config.php で WP_DEBUG_LOG が有効';
             echo '</div>';
         } else {
@@ -747,7 +829,6 @@ class Andw_Admin {
 
         // テスト機能（常時表示）
         echo '<div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">';
-        echo '<p style="margin: 0 0 5px; font-size: 12px; color: #666;">テスト機能:</p>';
         echo '<div style="display: flex; gap: 5px; flex-wrap: wrap;">';
 
         // テスト用ログ出力
@@ -758,6 +839,32 @@ class Andw_Admin {
         submit_button( __( '🧪 テスト用ログ出力', 'andw-debug-viewer' ), 'secondary small', 'submit', false, array( 'style' => 'margin: 0;' ) );
         echo '</form>';
 
+        // 🛑 デバッグログ使用終了ボタン
+        $session_file_path = WP_CONTENT_DIR . '/andw-session.json';
+        $session = false;
+        $safe_to_clear = false;
+        $created_by_plugin = false;
+
+        if ( file_exists( $session_file_path ) ) {
+            $session_content = file_get_contents( $session_file_path );
+            $session = json_decode( $session_content, true );
+
+            if ( $session && isset( $session['permissions'] ) ) {
+                $safe_to_clear = ! empty( $session['permissions']['safe_to_clear'] );
+                $created_by_plugin = ! empty( $session['permissions']['created_by_plugin'] );
+            }
+        }
+
+        $can_end_debug_log = $safe_to_clear || $created_by_plugin;
+
+        if ( $can_end_debug_log ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin: 0; display: inline-block;">';
+            wp_nonce_field( 'andw_end_debug_log_usage' );
+            echo '<input type="hidden" name="action" value="andw_end_debug_log_usage">';
+            echo '<input type="hidden" name="current_tab" value="viewer">';
+            submit_button( __( '🛑 デバッグログ使用終了', 'andw-debug-viewer' ), 'delete small', 'submit', false, array( 'style' => 'margin: 0;' ) );
+            echo '</form>';
+        }
 
         echo '</div>';
         echo '</div>';
@@ -840,7 +947,7 @@ class Andw_Admin {
                 $result = $settings_handler->enable_debug_log_override();
             } else {
                 // WP_DEBUG_LOG=false: 従来のセッションベース
-                $timestamp = current_time( 'timestamp' ) + ( 15 * MINUTE_IN_SECONDS );
+                $timestamp = current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ); // テスト用: 15分→5分
                 $result = $settings_handler->set_production_override_expiration( $timestamp );
             }
             $message = 'prod_enabled';
@@ -898,6 +1005,8 @@ class Andw_Admin {
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
             'temp_logging_error'   => __( 'ログ出力設定の変更に失敗しました。', 'andw-debug-viewer' ),
             'test_log_success'     => __( 'テスト用ログメッセージを出力しました。ログビューアーで確認してください。', 'andw-debug-viewer' ),
+            'debug_log_usage_ended'=> __( 'デバッグログの使用を終了し、関連ファイルを削除しました。', 'andw-debug-viewer' ),
+            'debug_log_usage_end_error' => __( 'デバッグログ使用終了処理に失敗しました。', 'andw-debug-viewer' ),
         );
 
         $message_key = $override_message ?: $temp_logging_message ?: $legacy_message;
@@ -919,9 +1028,11 @@ class Andw_Admin {
         $stats    = $this->plugin->get_log_reader()->get_stats();
 
         return array(
-            'restUrl'   => 'andw-debug-viewer/v1/',
-            'nonce'     => wp_create_nonce( 'wp_rest' ),
-            'settings'  => array(
+            'restUrl'      => 'andw-debug-viewer/v1/',
+            'nonce'        => wp_create_nonce( 'wp_rest' ),
+            'adminPostUrl' => admin_url( 'admin-post.php' ),
+            'toggleNonce'  => wp_create_nonce( 'andw_toggle_temp_logging' ),
+            'settings'     => array(
                 'defaultLines'    => (int) $settings['default_lines'],
                 'defaultMinutes'  => (int) $settings['default_minutes'],
                 'maxLines'        => (int) $settings['max_lines'],
@@ -994,6 +1105,60 @@ class Andw_Admin {
 
         // リダイレクト先を元のタブに戻す（リファラーから判定）
         $current_tab = 'viewer';  // デフォルトはビューアータブ
+        if ( isset( $_POST['current_tab'] ) ) {
+            $current_tab = sanitize_key( $_POST['current_tab'] );
+        } else {
+            $referer = wp_get_referer();
+            if ( $referer && strpos( $referer, 'tab=settings' ) !== false ) {
+                $current_tab = 'settings';
+            }
+        }
+
+        $redirect_url = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'page' => 'andw-debug-viewer',
+                    'tab'  => $current_tab,
+                    'temp_logging_message' => $message,
+                ),
+                admin_url( 'admin.php' )
+            ),
+            'andw_notice_redirect'
+        );
+
+        wp_safe_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * Handle ending debug log usage.
+     *
+     * @return void
+     */
+    public function handle_end_debug_log_usage() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
+        }
+
+        $nonce = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+
+        if ( empty( $nonce ) ) {
+            wp_die( esc_html__( 'ナンスが見つかりません。', 'andw-debug-viewer' ) );
+        }
+
+        if ( ! wp_verify_nonce( $nonce, 'andw_end_debug_log_usage' ) ) {
+            wp_die( esc_html__( '無効なリクエストです。', 'andw-debug-viewer' ) );
+        }
+
+        $settings = $this->plugin->get_settings_handler();
+
+        // debug.log と andw-session.json を明示的に削除
+        $success = $settings->explicitly_end_debug_log_usage();
+
+        $message = $success ? 'debug_log_usage_ended' : 'debug_log_usage_end_error';
+
+        // リダイレクト先を元のタブに戻す
+        $current_tab = 'viewer';
         if ( isset( $_POST['current_tab'] ) ) {
             $current_tab = sanitize_key( $_POST['current_tab'] );
         } else {
@@ -1180,6 +1345,133 @@ class Andw_Admin {
         } else {
             wp_send_json_error( array( 'message' => $message ) );
         }
+    }
+
+    /**
+     * Render debug information for log deletion logic.
+     *
+     * @return void
+     */
+    private function render_deletion_debug_info() {
+        $settings = $this->plugin->get_settings();
+        $current_time = time();
+
+        // セッションファイルの情報
+        $session_file = WP_CONTENT_DIR . '/andw-session.json';
+        $session_exists = file_exists( $session_file );
+        $session_data = false;
+
+        if ( $session_exists ) {
+            $session_content = file_get_contents( $session_file );
+            $session_data = json_decode( $session_content, true );
+        }
+
+        // debug.logの情報
+        $debug_log_path = WP_CONTENT_DIR . '/debug.log';
+        $debug_log_exists = file_exists( $debug_log_path );
+
+        // 期限切れチェック
+        $temp_logging_expiration = isset( $settings['temp_logging_expiration'] ) ? (int) $settings['temp_logging_expiration'] : 0;
+        $is_expired = $temp_logging_expiration > 0 && $temp_logging_expiration <= $current_time;
+
+        echo '<div class="andw-card" style="margin-top: 20px; background-color: #f0f0f1;">';
+        echo '<h2>🔍 ' . esc_html__( 'ログ削除デバッグ情報', 'andw-debug-viewer' ) . '</h2>';
+
+        echo '<h3>' . esc_html__( '現在時刻と設定', 'andw-debug-viewer' ) . '</h3>';
+        echo '<table class="widefat" style="margin-bottom: 15px;">';
+        echo '<tr><th style="width: 250px;">現在時刻 (time())</th><td>' . esc_html( $current_time ) . ' (' . esc_html( wp_date( 'Y-m-d H:i:s', $current_time ) ) . ')</td></tr>';
+        echo '<tr><th>temp_logging_enabled</th><td>' . esc_html( ! empty( $settings['temp_logging_enabled'] ) ? 'true' : 'false' ) . '</td></tr>';
+        echo '<tr><th>temp_logging_expiration</th><td>' . esc_html( $temp_logging_expiration ) . ( $temp_logging_expiration > 0 ? ' (' . esc_html( wp_date( 'Y-m-d H:i:s', $temp_logging_expiration ) ) . ')' : '' ) . '</td></tr>';
+        echo '<tr><th>期限切れ判定</th><td><strong>' . esc_html( $is_expired ? '期限切れ' : '有効' ) . '</strong></td></tr>';
+        echo '<tr><th>debug_log_created_by_plugin</th><td>' . esc_html( ! empty( $settings['debug_log_created_by_plugin'] ) ? 'true' : 'false' ) . '</td></tr>';
+        echo '</table>';
+
+        echo '<h3>' . esc_html__( 'セッションファイル情報', 'andw-debug-viewer' ) . '</h3>';
+        echo '<table class="widefat" style="margin-bottom: 15px;">';
+        echo '<tr><th style="width: 250px;">andw-session.json 存在</th><td>' . esc_html( $session_exists ? 'あり' : 'なし' ) . '</td></tr>';
+
+        if ( $session_data ) {
+            echo '<tr><th>session_type</th><td>' . esc_html( isset( $session_data['session_type'] ) ? $session_data['session_type'] : 'N/A' ) . '</td></tr>';
+            echo '<tr><th>created_at</th><td>' . esc_html( isset( $session_data['created_at'] ) ? $session_data['created_at'] . ' (' . wp_date( 'Y-m-d H:i:s', $session_data['created_at'] ) . ')' : 'N/A' ) . '</td></tr>';
+            echo '<tr><th>expires_at</th><td>' . esc_html( isset( $session_data['expires_at'] ) ? $session_data['expires_at'] . ' (' . wp_date( 'Y-m-d H:i:s', $session_data['expires_at'] ) . ')' : 'N/A' ) . '</td></tr>';
+
+            $session_expired = isset( $session_data['expires_at'] ) && $session_data['expires_at'] <= $current_time;
+            echo '<tr><th>セッション期限切れ判定</th><td><strong>' . esc_html( $session_expired ? '期限切れ' : '有効' ) . '</strong></td></tr>';
+
+            if ( isset( $session_data['permissions'] ) ) {
+                echo '<tr><th>permissions.safe_to_clear</th><td>' . esc_html( ! empty( $session_data['permissions']['safe_to_clear'] ) ? 'true' : 'false' ) . '</td></tr>';
+                echo '<tr><th>permissions.created_by_plugin</th><td>' . esc_html( ! empty( $session_data['permissions']['created_by_plugin'] ) ? 'true' : 'false' ) . '</td></tr>';
+            }
+        }
+        echo '</table>';
+
+        echo '<h3>' . esc_html__( 'debug.log ファイル情報', 'andw-debug-viewer' ) . '</h3>';
+        echo '<table class="widefat" style="margin-bottom: 15px;">';
+        echo '<tr><th style="width: 250px;">debug.log 存在</th><td>' . esc_html( $debug_log_exists ? 'あり' : 'なし' ) . '</td></tr>';
+        if ( $debug_log_exists ) {
+            echo '<tr><th>ファイルサイズ</th><td>' . esc_html( size_format( filesize( $debug_log_path ) ) ) . '</td></tr>';
+        }
+        echo '</table>';
+
+        echo '<h3>' . esc_html__( '削除判定ロジック', 'andw-debug-viewer' ) . '</h3>';
+        echo '<div style="background: white; padding: 15px; border-left: 4px solid #2271b1;">';
+
+        if ( $is_expired ) {
+            echo '<p><strong>✅ temp_logging_expiration が期限切れのため、handle_temp_logging_expiration() が呼ばれます。</strong></p>';
+
+            if ( $session_data ) {
+                $safe_to_clear = ! empty( $session_data['permissions']['safe_to_clear'] );
+                $created_by_plugin = ! empty( $session_data['permissions']['created_by_plugin'] );
+
+                echo '<p>セッションファイルから取得した情報:</p>';
+                echo '<ul>';
+                echo '<li>safe_to_clear: ' . esc_html( $safe_to_clear ? 'true' : 'false' ) . '</li>';
+                echo '<li>created_by_plugin: ' . esc_html( $created_by_plugin ? 'true' : 'false' ) . '</li>';
+                echo '</ul>';
+
+                $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
+                echo '<p>WP_DEBUG_LOG: ' . esc_html( $wp_debug_log_enabled ? 'true' : 'false' ) . '</p>';
+
+                if ( $debug_log_exists ) {
+                    if ( ! $wp_debug_log_enabled && $safe_to_clear ) {
+                        echo '<p><strong>🗑️ 削除条件1に該当: WP_DEBUG_LOG=false かつ safe_to_clear=true → debug.log を削除</strong></p>';
+                    } elseif ( $safe_to_clear && $created_by_plugin ) {
+                        echo '<p><strong>🗑️ 削除条件2に該当: safe_to_clear=true かつ created_by_plugin=true → debug.log を削除</strong></p>';
+                    } else {
+                        echo '<p><strong>❌ 削除条件に該当しません → debug.log は削除されません</strong></p>';
+                        echo '<p>理由: ';
+                        if ( $wp_debug_log_enabled && ! $safe_to_clear ) {
+                            echo 'WP_DEBUG_LOG=true かつ safe_to_clear=false';
+                        } elseif ( ! $safe_to_clear ) {
+                            echo 'safe_to_clear=false';
+                        } elseif ( ! $created_by_plugin ) {
+                            echo 'created_by_plugin=false';
+                        }
+                        echo '</p>';
+                    }
+                } else {
+                    echo '<p>debug.log が存在しないため、削除処理は不要です。</p>';
+                }
+            } else {
+                echo '<p>⚠️ セッションファイルが存在しないため、WordPressオプションから情報を取得します。</p>';
+                $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
+                $was_created_by_plugin = ! empty( $settings['debug_log_created_by_plugin'] );
+                echo '<ul>';
+                echo '<li>temp_logging_enabled: ' . esc_html( $was_temp_active ? 'true' : 'false' ) . ' → safe_to_clear</li>';
+                echo '<li>debug_log_created_by_plugin: ' . esc_html( $was_created_by_plugin ? 'true' : 'false' ) . ' → created_by_plugin</li>';
+                echo '</ul>';
+            }
+        } else {
+            echo '<p><strong>⏱️ temp_logging_expiration が期限切れではないため、削除処理は実行されません。</strong></p>';
+            if ( $temp_logging_expiration > 0 ) {
+                $remaining = $temp_logging_expiration - $current_time;
+                echo '<p>残り時間: ' . esc_html( gmdate( 'i:s', $remaining ) ) . '</p>';
+            }
+        }
+
+        echo '</div>';
+
+        echo '</div>';
     }
 
 }

@@ -163,7 +163,7 @@ class Andw_Plugin {
         // セッションデータを直接作成（ログ出力なし）
         $session_data = array(
             'created_at'   => time(),
-            'expires_at'   => time() + ( 15 * MINUTE_IN_SECONDS ),
+            'expires_at'   => time() + ( 5 * MINUTE_IN_SECONDS ), // テスト用: 15分→5分
             'session_type' => 'wordpress_debug',
             'permissions'  => array(
                 'safe_to_clear'     => false,
