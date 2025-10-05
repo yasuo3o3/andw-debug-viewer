@@ -358,11 +358,7 @@ class Andw_Settings {
             // 代替手段: 直接設定を更新
             $manual_save = array(
                 'temp_logging_enabled' => true,
-<<<<<<< HEAD
                 'temp_logging_expiration' => current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ), // テスト用: 15分→5分
-=======
-                'temp_logging_expiration' => time() + ( 15 * MINUTE_IN_SECONDS ),
->>>>>>> aa6f12e7a893bc4e59a1e37150d7f9b234d9f63d
             );
             $result = add_option( self::OPTION_NAME . '_temp', $manual_save, '', 'no' );
 
