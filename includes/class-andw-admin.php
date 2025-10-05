@@ -451,8 +451,6 @@ class Andw_Admin {
 
         echo '<div class="andw-card">';
         echo '<h2>' . esc_html__( '設定について', 'andw-debug-viewer' ) . '</h2>';
-        echo '<p>' . esc_html__( '一時的なログ有効化や危険な操作の許可設定は、使いやすさのためログビューアータブに移動しました。', 'andw-debug-viewer' ) . '</p>';
-        echo '<p>' . esc_html__( 'こちらの設定タブでは、ビューアーの基本動作設定を調整できます。', 'andw-debug-viewer' ) . '</p>';
         echo '</div>';
 
         echo '<form action="' . esc_url( admin_url( 'options.php' ) ) . '" method="post">';
@@ -461,8 +459,6 @@ class Andw_Admin {
         submit_button();
         echo '</form>';
 
-        // デバッグ情報セクション
-        $this->render_deletion_debug_info();
 
         echo '</section>';
     }
@@ -1347,131 +1343,5 @@ class Andw_Admin {
         }
     }
 
-    /**
-     * Render debug information for log deletion logic.
-     *
-     * @return void
-     */
-    private function render_deletion_debug_info() {
-        $settings = $this->plugin->get_settings();
-        $current_time = time();
-
-        // セッションファイルの情報
-        $session_file = WP_CONTENT_DIR . '/andw-session.json';
-        $session_exists = file_exists( $session_file );
-        $session_data = false;
-
-        if ( $session_exists ) {
-            $session_content = file_get_contents( $session_file );
-            $session_data = json_decode( $session_content, true );
-        }
-
-        // debug.logの情報
-        $debug_log_path = WP_CONTENT_DIR . '/debug.log';
-        $debug_log_exists = file_exists( $debug_log_path );
-
-        // 期限切れチェック
-        $temp_logging_expiration = isset( $settings['temp_logging_expiration'] ) ? (int) $settings['temp_logging_expiration'] : 0;
-        $is_expired = $temp_logging_expiration > 0 && $temp_logging_expiration <= $current_time;
-
-        echo '<div class="andw-card" style="margin-top: 20px; background-color: #f0f0f1;">';
-        echo '<h2>🔍 ' . esc_html__( 'ログ削除デバッグ情報', 'andw-debug-viewer' ) . '</h2>';
-
-        echo '<h3>' . esc_html__( '現在時刻と設定', 'andw-debug-viewer' ) . '</h3>';
-        echo '<table class="widefat" style="margin-bottom: 15px;">';
-        echo '<tr><th style="width: 250px;">現在時刻 (time())</th><td>' . esc_html( $current_time ) . ' (' . esc_html( wp_date( 'Y-m-d H:i:s', $current_time ) ) . ')</td></tr>';
-        echo '<tr><th>temp_logging_enabled</th><td>' . esc_html( ! empty( $settings['temp_logging_enabled'] ) ? 'true' : 'false' ) . '</td></tr>';
-        echo '<tr><th>temp_logging_expiration</th><td>' . esc_html( $temp_logging_expiration ) . ( $temp_logging_expiration > 0 ? ' (' . esc_html( wp_date( 'Y-m-d H:i:s', $temp_logging_expiration ) ) . ')' : '' ) . '</td></tr>';
-        echo '<tr><th>期限切れ判定</th><td><strong>' . esc_html( $is_expired ? '期限切れ' : '有効' ) . '</strong></td></tr>';
-        echo '<tr><th>debug_log_created_by_plugin</th><td>' . esc_html( ! empty( $settings['debug_log_created_by_plugin'] ) ? 'true' : 'false' ) . '</td></tr>';
-        echo '</table>';
-
-        echo '<h3>' . esc_html__( 'セッションファイル情報', 'andw-debug-viewer' ) . '</h3>';
-        echo '<table class="widefat" style="margin-bottom: 15px;">';
-        echo '<tr><th style="width: 250px;">andw-session.json 存在</th><td>' . esc_html( $session_exists ? 'あり' : 'なし' ) . '</td></tr>';
-
-        if ( $session_data ) {
-            echo '<tr><th>session_type</th><td>' . esc_html( isset( $session_data['session_type'] ) ? $session_data['session_type'] : 'N/A' ) . '</td></tr>';
-            echo '<tr><th>created_at</th><td>' . esc_html( isset( $session_data['created_at'] ) ? $session_data['created_at'] . ' (' . wp_date( 'Y-m-d H:i:s', $session_data['created_at'] ) . ')' : 'N/A' ) . '</td></tr>';
-            echo '<tr><th>expires_at</th><td>' . esc_html( isset( $session_data['expires_at'] ) ? $session_data['expires_at'] . ' (' . wp_date( 'Y-m-d H:i:s', $session_data['expires_at'] ) . ')' : 'N/A' ) . '</td></tr>';
-
-            $session_expired = isset( $session_data['expires_at'] ) && $session_data['expires_at'] <= $current_time;
-            echo '<tr><th>セッション期限切れ判定</th><td><strong>' . esc_html( $session_expired ? '期限切れ' : '有効' ) . '</strong></td></tr>';
-
-            if ( isset( $session_data['permissions'] ) ) {
-                echo '<tr><th>permissions.safe_to_clear</th><td>' . esc_html( ! empty( $session_data['permissions']['safe_to_clear'] ) ? 'true' : 'false' ) . '</td></tr>';
-                echo '<tr><th>permissions.created_by_plugin</th><td>' . esc_html( ! empty( $session_data['permissions']['created_by_plugin'] ) ? 'true' : 'false' ) . '</td></tr>';
-            }
-        }
-        echo '</table>';
-
-        echo '<h3>' . esc_html__( 'debug.log ファイル情報', 'andw-debug-viewer' ) . '</h3>';
-        echo '<table class="widefat" style="margin-bottom: 15px;">';
-        echo '<tr><th style="width: 250px;">debug.log 存在</th><td>' . esc_html( $debug_log_exists ? 'あり' : 'なし' ) . '</td></tr>';
-        if ( $debug_log_exists ) {
-            echo '<tr><th>ファイルサイズ</th><td>' . esc_html( size_format( filesize( $debug_log_path ) ) ) . '</td></tr>';
-        }
-        echo '</table>';
-
-        echo '<h3>' . esc_html__( '削除判定ロジック', 'andw-debug-viewer' ) . '</h3>';
-        echo '<div style="background: white; padding: 15px; border-left: 4px solid #2271b1;">';
-
-        if ( $is_expired ) {
-            echo '<p><strong>✅ temp_logging_expiration が期限切れのため、handle_temp_logging_expiration() が呼ばれます。</strong></p>';
-
-            if ( $session_data ) {
-                $safe_to_clear = ! empty( $session_data['permissions']['safe_to_clear'] );
-                $created_by_plugin = ! empty( $session_data['permissions']['created_by_plugin'] );
-
-                echo '<p>セッションファイルから取得した情報:</p>';
-                echo '<ul>';
-                echo '<li>safe_to_clear: ' . esc_html( $safe_to_clear ? 'true' : 'false' ) . '</li>';
-                echo '<li>created_by_plugin: ' . esc_html( $created_by_plugin ? 'true' : 'false' ) . '</li>';
-                echo '</ul>';
-
-                $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
-                echo '<p>WP_DEBUG_LOG: ' . esc_html( $wp_debug_log_enabled ? 'true' : 'false' ) . '</p>';
-
-                if ( $debug_log_exists ) {
-                    if ( ! $wp_debug_log_enabled && $safe_to_clear ) {
-                        echo '<p><strong>🗑️ 削除条件1に該当: WP_DEBUG_LOG=false かつ safe_to_clear=true → debug.log を削除</strong></p>';
-                    } elseif ( $safe_to_clear && $created_by_plugin ) {
-                        echo '<p><strong>🗑️ 削除条件2に該当: safe_to_clear=true かつ created_by_plugin=true → debug.log を削除</strong></p>';
-                    } else {
-                        echo '<p><strong>❌ 削除条件に該当しません → debug.log は削除されません</strong></p>';
-                        echo '<p>理由: ';
-                        if ( $wp_debug_log_enabled && ! $safe_to_clear ) {
-                            echo 'WP_DEBUG_LOG=true かつ safe_to_clear=false';
-                        } elseif ( ! $safe_to_clear ) {
-                            echo 'safe_to_clear=false';
-                        } elseif ( ! $created_by_plugin ) {
-                            echo 'created_by_plugin=false';
-                        }
-                        echo '</p>';
-                    }
-                } else {
-                    echo '<p>debug.log が存在しないため、削除処理は不要です。</p>';
-                }
-            } else {
-                echo '<p>⚠️ セッションファイルが存在しないため、WordPressオプションから情報を取得します。</p>';
-                $was_temp_active = ! empty( $settings['temp_logging_enabled'] );
-                $was_created_by_plugin = ! empty( $settings['debug_log_created_by_plugin'] );
-                echo '<ul>';
-                echo '<li>temp_logging_enabled: ' . esc_html( $was_temp_active ? 'true' : 'false' ) . ' → safe_to_clear</li>';
-                echo '<li>debug_log_created_by_plugin: ' . esc_html( $was_created_by_plugin ? 'true' : 'false' ) . ' → created_by_plugin</li>';
-                echo '</ul>';
-            }
-        } else {
-            echo '<p><strong>⏱️ temp_logging_expiration が期限切れではないため、削除処理は実行されません。</strong></p>';
-            if ( $temp_logging_expiration > 0 ) {
-                $remaining = $temp_logging_expiration - $current_time;
-                echo '<p>残り時間: ' . esc_html( gmdate( 'i:s', $remaining ) ) . '</p>';
-            }
-        }
-
-        echo '</div>';
-
-        echo '</div>';
-    }
-
 }
+
