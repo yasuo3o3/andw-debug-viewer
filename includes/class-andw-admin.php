@@ -549,7 +549,7 @@ class Andw_Admin {
             /* translators: %s: expiration date/time. */
             echo '<p>' . esc_html( sprintf( __( '現在、一時許可が有効です（%s まで）。', 'andw-debug-viewer' ), $expires ) ) . '</p>';
         } else {
-            echo '<p>' . esc_html__( 'WP_DEBUG=false の環境では既定でクリア／ダウンロードは無効です。必要な場合のみ15分間の一時許可を発行できます。', 'andw-debug-viewer' ) . '</p>';
+            echo '<p>' . esc_html__( 'WP_DEBUG=false の環境では既定でクリア／ダウンロードは無効です。必要な場合のみ60分間の一時許可を発行できます。', 'andw-debug-viewer' ) . '</p>';
         }
 
         echo '<div class="andw-control-row">';
@@ -561,7 +561,7 @@ class Andw_Admin {
             submit_button( __( '一時許可を解除', 'andw-debug-viewer' ), 'secondary', 'submit', false );
         } else {
             echo '<input type="hidden" name="state" value="enable">';
-            submit_button( __( '15分間許可を発行', 'andw-debug-viewer' ), 'primary', 'submit', false );
+            submit_button( __( '60分間許可を発行', 'andw-debug-viewer' ), 'primary', 'submit', false );
         }
         echo '</form>';
 
@@ -626,7 +626,7 @@ class Andw_Admin {
                 echo '<p>' . esc_html__( 'wp-config.php で WP_DEBUG_LOG が有効なため、WordPress デバッグログが利用できます。', 'andw-debug-viewer' ) . '</p>';
             }
         } else {
-            echo '<p>' . esc_html__( 'debug.log ファイルが存在せず、WP_DEBUG_LOG も無効です。wp-configを変更せずに15分間だけログ出力を有効化できます。', 'andw-debug-viewer' ) . '</p>';
+            echo '<p>' . esc_html__( 'debug.log ファイルが存在せず、WP_DEBUG_LOG も無効です。wp-configを変更せずに60分間だけログ出力を有効化できます。', 'andw-debug-viewer' ) . '</p>';
         }
 
         echo '<div class="andw-control-row">';
@@ -645,7 +645,7 @@ class Andw_Admin {
                 echo '</div><br>';
             } elseif ( $temp_session_active ) {
                 echo '<div style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
-                echo '<strong>🟢 一時セッション 有効中</strong> - ログ操作が15分間許可されています';
+                echo '<strong>🟢 一時セッション 有効中</strong> - ログ操作が60分間許可されています';
                 echo '</div><br>';
             } else {
                 echo '<div id="andw-log-available-notice" style="background: #00a32a; color: white; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; display: inline-block;">';
@@ -671,7 +671,7 @@ class Andw_Admin {
                 submit_button( __( '⏹️ 一時ログ出力を停止', 'andw-debug-viewer' ), 'delete', 'submit', false );
             } else {
                 echo '<input type="hidden" name="state" value="enable">';
-                submit_button( __( '▶️ 15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary', 'submit', false );
+                submit_button( __( '▶️ 60分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary', 'submit', false );
             }
             echo '</form>';
         } else {
@@ -822,7 +822,7 @@ class Andw_Admin {
             echo '<input type="hidden" name="action" value="andw_toggle_temp_logging">';
             echo '<input type="hidden" name="state" value="enable">';
             echo '<input type="hidden" name="current_tab" value="viewer">';
-            submit_button( __( '▶️ 15分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary small', 'submit', false );
+            submit_button( __( '▶️ 60分間ログ出力を有効化', 'andw-debug-viewer' ), 'primary small', 'submit', false );
             echo '</form>';
             echo '</div>';
         }
@@ -903,7 +903,7 @@ class Andw_Admin {
             echo '<input type="hidden" name="action" value="andw_toggle_prod_override">';
             echo '<input type="hidden" name="state" value="enable">';
             echo '<input type="hidden" name="current_tab" value="viewer">';
-            submit_button( __( '⚠️ 15分間危険な操作を許可', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
+            submit_button( __( '⚠️ 60分間危険な操作を許可', 'andw-debug-viewer' ), 'secondary small', 'submit', false );
             echo '</form>';
         }
 
@@ -947,7 +947,7 @@ class Andw_Admin {
                 $result = $settings_handler->enable_debug_log_override();
             } else {
                 // WP_DEBUG_LOG=false: 従来のセッションベース
-                $timestamp = current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ); // テスト用: 15分→5分
+                $timestamp = current_time( 'timestamp' ) + ( 60 * MINUTE_IN_SECONDS ); // 本番用: 60分間
                 $result = $settings_handler->set_production_override_expiration( $timestamp );
             }
             $message = 'prod_enabled';
@@ -996,12 +996,12 @@ class Andw_Admin {
         $legacy_message = isset( $_GET['andw_message'] ) ? sanitize_key( $_GET['andw_message'] ) : '';
 
         $messages = array(
-            'prod_enabled'         => __( 'WP_DEBUG=false 環境で15分間の一時許可を有効化しました。', 'andw-debug-viewer' ),
+            'prod_enabled'         => __( 'WP_DEBUG=false 環境で60分間の一時許可を有効化しました。', 'andw-debug-viewer' ),
             'prod_disabled'        => __( 'WP_DEBUG=false 環境での一時許可を解除しました。', 'andw-debug-viewer' ),
             'override_enabled'     => __( 'WP_DEBUG=false 環境での一時許可を有効にしました。', 'andw-debug-viewer' ),
             'override_disabled'    => __( 'WP_DEBUG=false 環境での一時許可を解除しました。', 'andw-debug-viewer' ),
             'override_error'       => __( '操作に失敗しました。', 'andw-debug-viewer' ),
-            'temp_logging_enabled' => __( '一時ログ出力を有効にしました（15分間）。', 'andw-debug-viewer' ),
+            'temp_logging_enabled' => __( '一時ログ出力を有効にしました（60分間）。', 'andw-debug-viewer' ),
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
             'temp_logging_error'   => __( 'ログ出力設定の変更に失敗しました。', 'andw-debug-viewer' ),
             'test_log_success'     => __( 'テスト用ログメッセージを出力しました。ログビューアーで確認してください。', 'andw-debug-viewer' ),

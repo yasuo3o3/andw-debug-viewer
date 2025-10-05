@@ -124,7 +124,7 @@ class Andw_Settings {
     public function enable_debug_log_override() {
         $override_data = array(
             'enabled' => true,
-            'expires_at' => time() + ( 5 * MINUTE_IN_SECONDS ) // テスト用: 15分→5分
+            'expires_at' => time() + ( 60 * MINUTE_IN_SECONDS ) // 本番用: 60分間
         );
 
         return update_option( 'andw_debug_log_override', $override_data, false );
@@ -287,7 +287,7 @@ class Andw_Settings {
 
         $settings['temp_logging_enabled'] = true;
 
-        $settings['temp_logging_expiration'] = current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ); // テスト用: 15分→5分
+        $settings['temp_logging_expiration'] = current_time( 'timestamp' ) + ( 60 * MINUTE_IN_SECONDS ); // 本番用: 60分間
 
         // debug.logがプラグインによって作成される場合の記録
         if ( ! $debug_log_existed_before ) {
@@ -328,7 +328,7 @@ class Andw_Settings {
 
             // ログ有効化の確認メッセージをデバッグログファイルに出力
             $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
-            $log_message = '[' . wp_date( 'Y-m-d H:i:s', time() ) . '] andW Debug Viewer: 15分間のログ出力が有効化されました。有効期限: ' . wp_date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
+            $log_message = '[' . wp_date( 'Y-m-d H:i:s', time() ) . '] andW Debug Viewer: 60分間のログ出力が有効化されました。有効期限: ' . wp_date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
             if ( wp_is_writable( dirname( $log_file ) ) || wp_is_writable( $log_file ) ) {
                 // WordPress Filesystem APIを使用
                 global $wp_filesystem;
@@ -358,7 +358,7 @@ class Andw_Settings {
             // 代替手段: 直接設定を更新
             $manual_save = array(
                 'temp_logging_enabled' => true,
-                'temp_logging_expiration' => current_time( 'timestamp' ) + ( 5 * MINUTE_IN_SECONDS ), // テスト用: 15分→5分
+                'temp_logging_expiration' => current_time( 'timestamp' ) + ( 60 * MINUTE_IN_SECONDS ), // 本番用: 60分間
             );
             $result = add_option( self::OPTION_NAME . '_temp', $manual_save, '', 'no' );
 
@@ -471,7 +471,7 @@ class Andw_Settings {
         $now = time();
         $session_data = array(
             'created_at'  => $now,
-            'expires_at'  => $now + ( 5 * MINUTE_IN_SECONDS ), // テスト用: 15分→5分
+            'expires_at'  => $now + ( 60 * MINUTE_IN_SECONDS ), // 本番用: 60分間
             'session_type' => $type,
             'permissions' => $final_permissions,
         );
