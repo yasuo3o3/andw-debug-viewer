@@ -529,7 +529,7 @@ class Andw_Admin {
         echo '<input type="hidden" name="action" value="andw_save_wp_config">';
 
         echo '<h3>' . esc_html__( 'ファイル内容', 'andw-debug-viewer' ) . '</h3>';
-        echo '<textarea name="wp_config_content" id="wp-config-editor" rows="30" style="width: 100%; font-family: monospace; font-size: 12px;"';
+        echo '<textarea name="wp_config_content" id="wp-config-editor" rows="15" style="width: 100%; font-family: monospace; font-size: 12px;"';
         if ( ! $file_writable ) {
             echo ' readonly';
         }
