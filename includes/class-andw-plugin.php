@@ -99,6 +99,9 @@ class Andw_Plugin {
 
         // WP_DEBUG_LOG=true時の自動セッション作成
         add_action( 'init', array( $this, 'ensure_wordpress_debug_session' ), 5 );
+
+        // wp-config.php修正の自動復元チェック
+        add_action( 'init', array( $this, 'maybe_restore_wp_config' ), 1 );
     }
 
     /**
@@ -205,6 +208,19 @@ class Andw_Plugin {
     }
 
     /**
+     * Check and restore wp-config.php if modification has expired.
+     *
+     * @return void
+     */
+    public function maybe_restore_wp_config() {
+        // Check if wp-config modification has expired and restore if needed
+        if ( $this->settings->is_wp_config_debug_modified() ) {
+            // The method itself checks for expiration and auto-restores
+            return;
+        }
+    }
+
+    /**
      * Determine permissions for current user/context.
      *
      * @param bool $network_context Whether this is a network admin context.
@@ -233,6 +249,7 @@ class Andw_Plugin {
 
         $temp_logging_active = $this->settings->is_temp_logging_active();
         $temp_session_active = $this->settings->is_temp_session_active();
+        $wp_config_debug_modified = $this->settings->is_wp_config_debug_modified();
 
         // WP_DEBUG_LOG=true時は override_active のみで判定（temp_session_activeは除外）
         if ( $wp_debug_log_enabled ) {
@@ -301,6 +318,8 @@ class Andw_Plugin {
             'temp_logging_active'        => $temp_logging_active,
             'temp_logging_expires'       => $temp_logging_active ? (int) $settings['temp_logging_expiration'] : 0,
             'temp_session_active'        => $temp_session_active,
+            'wp_config_debug_modified'   => $wp_config_debug_modified,
+            'wp_config_debug_expires'    => $wp_config_debug_modified ? $this->settings->get_wp_config_debug_expires() : 0,
             'can_view'                   => true,
             'can_clear'                  => $can_clear,
             'can_download'               => $can_download,

@@ -326,9 +326,13 @@ class Andw_Settings {
 
             $this->apply_temp_logging_settings();
 
+            // Try to enable wp-config.php modification for proper error logging
+            $wp_config_enabled = $this->enable_wp_config_debug_logging();
+
             // ログ有効化の確認メッセージをデバッグログファイルに出力
             $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
-            $log_message = '[' . wp_date( 'Y-m-d H:i:s', time() ) . '] andW Debug Viewer: 60分間のログ出力が有効化されました。有効期限: ' . wp_date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
+            $config_status = $wp_config_enabled ? 'wp-config.phpも一時的に変更されました' : 'wp-config.phpの変更は行われませんでした';
+            $log_message = '[' . wp_date( 'Y-m-d H:i:s', time() ) . '] andW Debug Viewer: 60分間のログ出力が有効化されました。' . $config_status . '。有効期限: ' . wp_date( 'Y-m-d H:i:s', $settings['temp_logging_expiration'] );
             if ( wp_is_writable( dirname( $log_file ) ) || wp_is_writable( $log_file ) ) {
                 // WordPress Filesystem APIを使用
                 global $wp_filesystem;
@@ -422,6 +426,9 @@ class Andw_Settings {
         if ( file_exists( $session_file ) ) {
             $deleted = wp_delete_file( $session_file );
         }
+
+        // wp-config.php修正も復元
+        $this->disable_wp_config_debug_logging();
 
         return update_option( self::OPTION_NAME, $settings, false );
     }
@@ -677,6 +684,9 @@ class Andw_Settings {
             $deleted = wp_delete_file( $session_file );
         }
 
+        // wp-config.php修正も復元
+        $this->disable_wp_config_debug_logging();
+
         // 古いdebug-temp.logファイルがあれば削除（後方互換性）
         $temp_log_file = WP_CONTENT_DIR . '/debug-temp.log';
         if ( file_exists( $temp_log_file ) ) {
@@ -684,6 +694,176 @@ class Andw_Settings {
         }
 
         // Temporary logging expiration cleanup completed
+    }
+
+    /**
+     * Enable temporary wp-config.php modification for debug logging.
+     *
+     * @return bool Success status.
+     */
+    public function enable_wp_config_debug_logging() {
+        $wp_config_path = ABSPATH . 'wp-config.php';
+
+        if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
+            return false;
+        }
+
+        // Check if already modified
+        if ( $this->is_wp_config_debug_modified() ) {
+            return true; // Already modified
+        }
+
+        // Read current wp-config.php
+        $wp_config_content = file_get_contents( $wp_config_path );
+        if ( false === $wp_config_content ) {
+            return false;
+        }
+
+        // Create backup
+        $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
+        $backup_result = file_put_contents( $backup_path, $wp_config_content );
+        if ( false === $backup_result ) {
+            return false;
+        }
+
+        // Find the WP_DEBUG section and modify it
+        $debug_section_pattern = '/if\s*\(\s*!\s*defined\s*\(\s*[\'"]WP_DEBUG[\'"]\s*\)\s*\)\s*\{\s*define\s*\(\s*[\'"]WP_DEBUG[\'"]\s*,\s*false\s*\)\s*;\s*\}/';
+
+        $new_debug_section = "// andW Debug Viewer: Temporary debug logging enabled\n" .
+                           "if ( ! defined( 'WP_DEBUG' ) ) {\n" .
+                           "\tdefine( 'WP_DEBUG', true );\n" .
+                           "}\n" .
+                           "if ( ! defined( 'WP_DEBUG_LOG' ) ) {\n" .
+                           "\tdefine( 'WP_DEBUG_LOG', true );\n" .
+                           "}\n" .
+                           "if ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {\n" .
+                           "\tdefine( 'WP_DEBUG_DISPLAY', false );\n" .
+                           "}\n" .
+                           "// andW Debug Viewer: End temporary modification";
+
+        $modified_content = preg_replace( $debug_section_pattern, $new_debug_section, $wp_config_content );
+
+        // If pattern didn't match, try to insert before WP_ENVIRONMENT_TYPE
+        if ( $modified_content === $wp_config_content ) {
+            $env_pattern = '/define\s*\(\s*[\'"]WP_ENVIRONMENT_TYPE[\'"]/';
+            if ( preg_match( $env_pattern, $wp_config_content ) ) {
+                $modified_content = preg_replace(
+                    $env_pattern,
+                    $new_debug_section . "\n\ndefine( 'WP_ENVIRONMENT_TYPE'",
+                    $wp_config_content
+                );
+            }
+        }
+
+        // If still no modification, insert before "That's all, stop editing!"
+        if ( $modified_content === $wp_config_content ) {
+            $stop_pattern = '/\/\*\s*That\'s all, stop editing!/';
+            if ( preg_match( $stop_pattern, $wp_config_content ) ) {
+                $modified_content = preg_replace(
+                    $stop_pattern,
+                    $new_debug_section . "\n\n/* That's all, stop editing!",
+                    $wp_config_content
+                );
+            }
+        }
+
+        // Verify modification was made
+        if ( $modified_content === $wp_config_content ) {
+            // Clean up backup
+            wp_delete_file( $backup_path );
+            return false;
+        }
+
+        // Write modified wp-config.php
+        $write_result = file_put_contents( $wp_config_path, $modified_content );
+        if ( false === $write_result ) {
+            // Clean up backup
+            wp_delete_file( $backup_path );
+            return false;
+        }
+
+        // Store modification info
+        $modification_info = array(
+            'enabled' => true,
+            'backup_path' => $backup_path,
+            'enabled_at' => time(),
+            'expires_at' => time() + ( 60 * MINUTE_IN_SECONDS ), // 60 minutes
+        );
+
+        update_option( 'andw_wp_config_debug_mod', $modification_info, false );
+
+        return true;
+    }
+
+    /**
+     * Disable temporary wp-config.php modification and restore original.
+     *
+     * @return bool Success status.
+     */
+    public function disable_wp_config_debug_logging() {
+        $modification_info = get_option( 'andw_wp_config_debug_mod', array() );
+
+        if ( empty( $modification_info['enabled'] ) || empty( $modification_info['backup_path'] ) ) {
+            return false;
+        }
+
+        $backup_path = $modification_info['backup_path'];
+        $wp_config_path = ABSPATH . 'wp-config.php';
+
+        if ( ! file_exists( $backup_path ) || ! file_exists( $wp_config_path ) ) {
+            // Clean up option even if files are missing
+            delete_option( 'andw_wp_config_debug_mod' );
+            return false;
+        }
+
+        // Restore from backup
+        $backup_content = file_get_contents( $backup_path );
+        if ( false === $backup_content ) {
+            return false;
+        }
+
+        $restore_result = file_put_contents( $wp_config_path, $backup_content );
+        if ( false === $restore_result ) {
+            return false;
+        }
+
+        // Clean up
+        wp_delete_file( $backup_path );
+        delete_option( 'andw_wp_config_debug_mod' );
+
+        return true;
+    }
+
+    /**
+     * Check if wp-config.php has been modified for debug logging.
+     *
+     * @return bool Whether wp-config.php is currently modified.
+     */
+    public function is_wp_config_debug_modified() {
+        $modification_info = get_option( 'andw_wp_config_debug_mod', array() );
+
+        if ( empty( $modification_info['enabled'] ) ) {
+            return false;
+        }
+
+        // Check if expired
+        if ( ! empty( $modification_info['expires_at'] ) && $modification_info['expires_at'] <= time() ) {
+            // Auto-restore if expired
+            $this->disable_wp_config_debug_logging();
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get wp-config modification expiration time.
+     *
+     * @return int Expiration timestamp, 0 if not modified.
+     */
+    public function get_wp_config_debug_expires() {
+        $modification_info = get_option( 'andw_wp_config_debug_mod', array() );
+        return isset( $modification_info['expires_at'] ) ? (int) $modification_info['expires_at'] : 0;
     }
 
     /**
