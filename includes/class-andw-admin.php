@@ -537,6 +537,12 @@ class Andw_Admin {
 
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
 
+        echo '<div class="andw-config-snippet" style="margin-bottom: 12px;">';
+        echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
+        $snippet = "if ( ! defined( 'WP_DEBUG' ) ) {\n\tdefine( 'WP_DEBUG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_LOG' ) ) {\n\tdefine( 'WP_DEBUG_LOG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {\n\tdefine( 'WP_DEBUG_DISPLAY', false );\n}";
+        echo '<textarea class="andw-config-snippet__textarea" readonly rows="7" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
+        echo '</div>';
+
         if ( $file_writable ) {
             submit_button( __( '💾 保存', 'andw-debug-viewer' ), 'primary', 'save_config', false );
             echo ' ';
