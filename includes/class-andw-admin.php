@@ -292,8 +292,16 @@ class Andw_Admin {
         }
 
         // nonce検証
-        if ( isset( $_GET['tab'] ) && ( empty( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_switch_tab' ) ) ) {
-            $active_tab = 'viewer';
+        if ( isset( $_GET['tab'] ) && ! empty( $_GET['_wpnonce'] ) ) {
+            // リダイレクト後のメッセージ表示か、通常のタブ切り替えかを判定
+            $is_redirect_message = isset( $_GET['wp_config_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] );
+            $expected_nonce = $is_redirect_message ? 'andw_notice_redirect' : 'andw_switch_tab';
+
+            if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), $expected_nonce ) ) {
+                $active_tab = 'viewer';
+            } else {
+                $active_tab = sanitize_key( $_GET['tab'] );
+            }
         } else {
             $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'viewer';
         }
@@ -1708,6 +1716,8 @@ class Andw_Admin {
             'andw_notice_redirect'
         );
 
+        error_log( '[andW Debug] Redirecting to: ' . $redirect_url );
+        error_log( '[andW Debug] Tab: ' . $tab . ', Message: ' . $message );
         wp_safe_redirect( $redirect_url );
         exit;
     }
