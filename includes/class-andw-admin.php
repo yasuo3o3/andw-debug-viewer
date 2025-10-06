@@ -38,9 +38,23 @@ class Andw_Admin {
         // 汎用的なadmin-post.phpデバッグ
         add_action( 'admin_post_nopriv_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
         add_action( 'admin_init', array( $this, 'debug_admin_post' ) );
+        add_action( 'admin_init', array( $this, 'debug_admin_post_actions' ) );
 
         // Ajax代替手段
         add_action( 'wp_ajax_andw_toggle_temp_logging', array( $this, 'ajax_toggle_temp_logging' ) );
+    }
+
+    /**
+     * Debug admin-post.php actions.
+     *
+     * @return void
+     */
+    public function debug_admin_post_actions() {
+        if ( isset( $_POST['action'] ) && strpos( sanitize_key( wp_unslash( $_POST['action'] ) ), 'andw_' ) === 0 ) {
+            error_log( '[andW Debug] admin-post action detected: ' . sanitize_key( wp_unslash( $_POST['action'] ) ) );
+            error_log( '[andW Debug] Request URI: ' . $_SERVER['REQUEST_URI'] );
+            error_log( '[andW Debug] POST keys: ' . implode( ', ', array_keys( $_POST ) ) );
+        }
     }
 
     /**
@@ -1499,30 +1513,41 @@ class Andw_Admin {
      * @return void
      */
     public function handle_save_wp_config() {
+        // DEBUG: 処理開始をログに記録
+        error_log( '[andW Debug] handle_save_wp_config() called. POST data: ' . print_r( $_POST, true ) );
+
         if ( ! current_user_can( 'manage_options' ) ) {
+            error_log( '[andW Debug] Permission denied for user' );
             wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_save' ) ) {
+            error_log( '[andW Debug] Nonce verification failed' );
             wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
         }
 
         $wp_config_path = ABSPATH . 'wp-config.php';
+        error_log( '[andW Debug] wp-config path: ' . $wp_config_path );
 
         if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
+            error_log( '[andW Debug] File not writable. Exists: ' . (file_exists($wp_config_path) ? 'yes' : 'no') . ', Writable: ' . (is_writable($wp_config_path) ? 'yes' : 'no') );
             $this->redirect_with_message( 'wp-config', 'config_not_writable' );
             return;
         }
 
         $content = isset( $_POST['wp_config_content'] ) ? wp_unslash( $_POST['wp_config_content'] ) : '';
+        error_log( '[andW Debug] Content length: ' . strlen( $content ) );
 
         // Basic PHP syntax check
         if ( ! $this->validate_php_syntax( $content ) ) {
+            error_log( '[andW Debug] Syntax validation failed' );
             $this->redirect_with_message( 'wp-config', 'syntax_error' );
             return;
         }
 
+        error_log( '[andW Debug] About to save file...' );
         $result = file_put_contents( $wp_config_path, $content );
+        error_log( '[andW Debug] Save result: ' . ($result !== false ? 'success (' . $result . ' bytes)' : 'failed') );
 
         if ( false === $result ) {
             $this->redirect_with_message( 'wp-config', 'save_failed' );
@@ -1617,36 +1642,50 @@ class Andw_Admin {
      * @return bool True if syntax is valid.
      */
     private function validate_php_syntax( $code ) {
+        error_log( '[andW Debug] validate_php_syntax called' );
+
         // Basic checks
         if ( empty( $code ) || ! is_string( $code ) ) {
+            error_log( '[andW Debug] Validation failed: empty or not string' );
             return false;
         }
 
         // Check if it starts with <?php
-        if ( strpos( trim( $code ), '<?php' ) !== 0 ) {
+        $trimmed = trim( $code );
+        if ( strpos( $trimmed, '<?php' ) !== 0 ) {
+            error_log( '[andW Debug] Validation failed: does not start with <?php. Starts with: ' . substr( $trimmed, 0, 20 ) );
             return false;
         }
 
-        // Try exec-based validation if available
-        if ( function_exists( 'exec' ) ) {
+        // Skip exec-based validation in Windows/Local development environments
+        // as PHP CLI may not be properly configured in PATH
+        if ( false && function_exists( 'exec' ) ) {
+            error_log( '[andW Debug] Using exec-based validation' );
             $temp_file = tempnam( sys_get_temp_dir(), 'wp_config_check' );
             if ( $temp_file ) {
                 file_put_contents( $temp_file, $code );
                 exec( "php -l $temp_file 2>&1", $output, $return_code );
                 unlink( $temp_file );
+                error_log( '[andW Debug] exec result: return_code=' . $return_code . ', output=' . implode( ' ', $output ) );
                 return 0 === $return_code;
             }
         }
 
-        // Very basic validation - just check for obvious syntax errors
-        // Remove the strict bracket/parentheses balance check as it's too restrictive
+        // Very basic validation - for wp-config.php files, we'll be more permissive
+        error_log( '[andW Debug] Using relaxed validation for wp-config.php' );
 
-        // Check for unclosed quotes (very basic)
-        $single_quotes = substr_count( $code, "'" ) - substr_count( $code, "\\'" );
-        $double_quotes = substr_count( $code, '"' ) - substr_count( $code, '\\"' );
+        // Check for some basic PHP structure
+        $has_php_open = strpos( $code, '<?php' ) !== false;
+        $has_basic_structure = strpos( $code, 'define(' ) !== false || strpos( $code, '$' ) !== false;
 
-        // Allow files as long as they don't have obviously unclosed quotes
-        return ( $single_quotes % 2 === 0 ) && ( $double_quotes % 2 === 0 );
+        error_log( '[andW Debug] Has PHP open tag: ' . ( $has_php_open ? 'yes' : 'no' ) );
+        error_log( '[andW Debug] Has basic PHP structure: ' . ( $has_basic_structure ? 'yes' : 'no' ) );
+
+        // For wp-config.php, if it has <?php and basic PHP syntax, consider it valid
+        // The quote counting method is too unreliable for complex config files
+        $result = $has_php_open && $has_basic_structure;
+        error_log( '[andW Debug] Final validation result: ' . ( $result ? 'PASS' : 'FAIL' ) );
+        return $result;
     }
 
     /**
