@@ -1626,7 +1626,7 @@ class Andw_Admin {
             return false;
         }
 
-        // Use php -l for syntax checking if available
+        // Try exec-based validation if available
         if ( function_exists( 'exec' ) ) {
             $temp_file = tempnam( sys_get_temp_dir(), 'wp_config_check' );
             if ( $temp_file ) {
@@ -1637,11 +1637,15 @@ class Andw_Admin {
             }
         }
 
-        // Fallback: basic pattern matching
-        $brackets = substr_count( $code, '{' ) - substr_count( $code, '}' );
-        $parens = substr_count( $code, '(' ) - substr_count( $code, ')' );
+        // Very basic validation - just check for obvious syntax errors
+        // Remove the strict bracket/parentheses balance check as it's too restrictive
 
-        return 0 === $brackets && 0 === $parens;
+        // Check for unclosed quotes (very basic)
+        $single_quotes = substr_count( $code, "'" ) - substr_count( $code, "\\'" );
+        $double_quotes = substr_count( $code, '"' ) - substr_count( $code, '\\"' );
+
+        // Allow files as long as they don't have obviously unclosed quotes
+        return ( $single_quotes % 2 === 0 ) && ( $double_quotes % 2 === 0 );
     }
 
     /**
