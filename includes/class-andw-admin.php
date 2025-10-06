@@ -50,11 +50,7 @@ class Andw_Admin {
      * @return void
      */
     public function debug_admin_post_actions() {
-        if ( isset( $_POST['action'] ) && strpos( sanitize_key( wp_unslash( $_POST['action'] ) ), 'andw_' ) === 0 ) {
-            error_log( '[andW Debug] admin-post action detected: ' . sanitize_key( wp_unslash( $_POST['action'] ) ) );
-            error_log( '[andW Debug] Request URI: ' . $_SERVER['REQUEST_URI'] );
-            error_log( '[andW Debug] POST keys: ' . implode( ', ', array_keys( $_POST ) ) );
-        }
+        // Debug logging removed for production
     }
 
     /**
@@ -291,21 +287,32 @@ class Andw_Admin {
             wp_die( esc_html__( 'この操作を実行する権限がありません。', 'andw-debug-viewer' ) );
         }
 
-        // nonce検証
-        if ( isset( $_GET['tab'] ) && ! empty( $_GET['_wpnonce'] ) ) {
-            // リダイレクト後のメッセージ表示か、通常のタブ切り替えかを判定
-            $is_redirect_message = isset( $_GET['wp_config_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] );
-            $expected_nonce = $is_redirect_message ? 'andw_notice_redirect' : 'andw_switch_tab';
+        // タブ決定処理
+        $is_redirect_message = isset( $_GET['wp_config_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] );
 
-            if ( ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), $expected_nonce ) ) {
-                $active_tab = 'viewer';
+        if ( isset( $_GET['tab'] ) ) {
+            $requested_tab = sanitize_key( $_GET['tab'] );
+
+            // リダイレクト後のメッセージ表示の場合、ナンス検証を緩和
+            if ( $is_redirect_message ) {
+                // メッセージ表示の場合、ナンス有無に関わらずタブを信頼
+                $active_tab = $requested_tab;
+            } elseif ( ! empty( $_GET['_wpnonce'] ) ) {
+                // 通常のタブ切り替えの場合、ナンス検証を実行
+                if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_switch_tab' ) ) {
+                    $active_tab = $requested_tab;
+                } else {
+                    $active_tab = 'viewer';
+                }
             } else {
-                $active_tab = sanitize_key( $_GET['tab'] );
+                // ナンスなしの通常リクエストはデフォルトタブ
+                $active_tab = 'viewer';
             }
         } else {
-            $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'viewer';
+            $active_tab = 'viewer';
         }
 
+        // 有効なタブ名かチェック
         if ( ! in_array( $active_tab, array( 'viewer', 'settings', 'wp-config' ), true ) ) {
             $active_tab = 'viewer';
         }
@@ -576,7 +583,10 @@ class Andw_Admin {
 
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
 
-
+        // 保存成功メッセージを表示
+        if ( isset( $_GET['wp_config_message'] ) && 'save_success' === $_GET['wp_config_message'] ) {
+            echo '<div class="notice notice-success inline" style="margin: 0 0 15px 0; padding: 8px 12px;"><p style="margin: 0;"><strong>✅ wp-config.php を保存しました。</strong> 変更が適用されました。</p></div>';
+        }
 
         if ( $file_writable ) {
             submit_button( __( '💾 保存', 'andw-debug-viewer' ), 'primary', 'save_config', false );
@@ -603,7 +613,7 @@ class Andw_Admin {
 
         echo '<div class="andw-config-snippet" style="margin-bottom: 12px;">';
         echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
-        $snippet = "if ( ! defined( 'WP_DEBUG' ) ) {\n\tdefine( 'WP_DEBUG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_LOG' ) ) {\n\tdefine( 'WP_DEBUG_LOG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {\n\tdefine( 'WP_DEBUG_DISPLAY', false );\n}";
+        $snippet = "defined( 'WP_DEBUG' ) || define( 'WP_DEBUG', true );\n\ndefined( 'WP_DEBUG_LOG' ) || define( 'WP_DEBUG_LOG', true );\n\ndefined( 'WP_DEBUG_DISPLAY' ) || define( 'WP_DEBUG_DISPLAY', false );";
         echo '<textarea class="andw-config-snippet__textarea" readonly rows="11" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
         echo '</div>';
 
@@ -1521,41 +1531,30 @@ class Andw_Admin {
      * @return void
      */
     public function handle_save_wp_config() {
-        // DEBUG: 処理開始をログに記録
-        error_log( '[andW Debug] handle_save_wp_config() called. POST data: ' . print_r( $_POST, true ) );
-
         if ( ! current_user_can( 'manage_options' ) ) {
-            error_log( '[andW Debug] Permission denied for user' );
             wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_save' ) ) {
-            error_log( '[andW Debug] Nonce verification failed' );
             wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
         }
 
         $wp_config_path = ABSPATH . 'wp-config.php';
-        error_log( '[andW Debug] wp-config path: ' . $wp_config_path );
 
         if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
-            error_log( '[andW Debug] File not writable. Exists: ' . (file_exists($wp_config_path) ? 'yes' : 'no') . ', Writable: ' . (is_writable($wp_config_path) ? 'yes' : 'no') );
             $this->redirect_with_message( 'wp-config', 'config_not_writable' );
             return;
         }
 
         $content = isset( $_POST['wp_config_content'] ) ? wp_unslash( $_POST['wp_config_content'] ) : '';
-        error_log( '[andW Debug] Content length: ' . strlen( $content ) );
 
         // Basic PHP syntax check
         if ( ! $this->validate_php_syntax( $content ) ) {
-            error_log( '[andW Debug] Syntax validation failed' );
             $this->redirect_with_message( 'wp-config', 'syntax_error' );
             return;
         }
 
-        error_log( '[andW Debug] About to save file...' );
         $result = file_put_contents( $wp_config_path, $content );
-        error_log( '[andW Debug] Save result: ' . ($result !== false ? 'success (' . $result . ' bytes)' : 'failed') );
 
         if ( false === $result ) {
             $this->redirect_with_message( 'wp-config', 'save_failed' );
@@ -1650,50 +1649,37 @@ class Andw_Admin {
      * @return bool True if syntax is valid.
      */
     private function validate_php_syntax( $code ) {
-        error_log( '[andW Debug] validate_php_syntax called' );
-
         // Basic checks
         if ( empty( $code ) || ! is_string( $code ) ) {
-            error_log( '[andW Debug] Validation failed: empty or not string' );
             return false;
         }
 
         // Check if it starts with <?php
         $trimmed = trim( $code );
         if ( strpos( $trimmed, '<?php' ) !== 0 ) {
-            error_log( '[andW Debug] Validation failed: does not start with <?php. Starts with: ' . substr( $trimmed, 0, 20 ) );
             return false;
         }
 
         // Skip exec-based validation in Windows/Local development environments
         // as PHP CLI may not be properly configured in PATH
         if ( false && function_exists( 'exec' ) ) {
-            error_log( '[andW Debug] Using exec-based validation' );
             $temp_file = tempnam( sys_get_temp_dir(), 'wp_config_check' );
             if ( $temp_file ) {
                 file_put_contents( $temp_file, $code );
                 exec( "php -l $temp_file 2>&1", $output, $return_code );
                 unlink( $temp_file );
-                error_log( '[andW Debug] exec result: return_code=' . $return_code . ', output=' . implode( ' ', $output ) );
                 return 0 === $return_code;
             }
         }
 
         // Very basic validation - for wp-config.php files, we'll be more permissive
-        error_log( '[andW Debug] Using relaxed validation for wp-config.php' );
-
         // Check for some basic PHP structure
         $has_php_open = strpos( $code, '<?php' ) !== false;
         $has_basic_structure = strpos( $code, 'define(' ) !== false || strpos( $code, '$' ) !== false;
 
-        error_log( '[andW Debug] Has PHP open tag: ' . ( $has_php_open ? 'yes' : 'no' ) );
-        error_log( '[andW Debug] Has basic PHP structure: ' . ( $has_basic_structure ? 'yes' : 'no' ) );
-
         // For wp-config.php, if it has <?php and basic PHP syntax, consider it valid
         // The quote counting method is too unreliable for complex config files
-        $result = $has_php_open && $has_basic_structure;
-        error_log( '[andW Debug] Final validation result: ' . ( $result ? 'PASS' : 'FAIL' ) );
-        return $result;
+        return $has_php_open && $has_basic_structure;
     }
 
     /**
@@ -1704,20 +1690,15 @@ class Andw_Admin {
      * @return void
      */
     private function redirect_with_message( $tab, $message ) {
-        $redirect_url = wp_nonce_url(
-            add_query_arg(
-                array(
-                    'page' => 'andw-debug-viewer',
-                    'tab'  => $tab,
-                    'wp_config_message' => $message,
-                ),
-                admin_url( 'admin.php' )
-            ),
-            'andw_notice_redirect'
+        $args = array(
+            'page' => 'andw-debug-viewer',
+            'tab'  => $tab,
+            'wp_config_message' => $message,
+            '_wpnonce' => wp_create_nonce( 'andw_notice_redirect' ),
         );
 
-        error_log( '[andW Debug] Redirecting to: ' . $redirect_url );
-        error_log( '[andW Debug] Tab: ' . $tab . ', Message: ' . $message );
+        $redirect_url = add_query_arg( $args, admin_url( 'admin.php' ) );
+
         wp_safe_redirect( $redirect_url );
         exit;
     }
