@@ -33,12 +33,19 @@
         };
     }
 
-    function setStatus(message, type = 'info') {
+    function setStatus(message, type = 'info', options = {}) {
         if (!statusEl) {
             return;
         }
         statusEl.textContent = message || '';
         statusEl.className = 'andw-status andw-status-' + type;
+
+        // 太字スタイルの適用
+        if (options.bold) {
+            statusEl.style.fontWeight = 'bold';
+        } else {
+            statusEl.style.fontWeight = 'normal';
+        }
     }
 
     function renderStats(stats) {
@@ -79,7 +86,10 @@
     function fetchLog() {
         const value = getModeValue();
         const path = data.restUrl + 'tail?mode=' + state.mode + '&value=' + encodeURIComponent(value);
-        setStatus(strings.refresh || __('再読み込み', 'andw-debug-viewer'));
+
+        // 太字で再読み込み表示
+        setStatus(strings.refresh || __('再読み込み', 'andw-debug-viewer'), 'info', { bold: true });
+
         return apiFetch({
             path: path,
             headers: getNonceHeaders(),
@@ -87,7 +97,12 @@
             .then(function (response) {
                 renderLog(response);
                 renderStats(response.stats);
-                setStatus('');
+
+                // 1秒後にステータスをクリア
+                setTimeout(function() {
+                    setStatus('');
+                }, 1000);
+
                 return response;
             })
             .catch(function (error) {

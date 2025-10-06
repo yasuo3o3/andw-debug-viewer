@@ -450,7 +450,7 @@ class Andw_Admin {
         $this->render_temp_logging_controls_compact( $permissions );
 
         echo '<div class="andw-status" id="andw-status" aria-live="polite"></div>';
-        echo '<textarea id="andw-log" class="andw-log" rows="40" readonly="readonly"></textarea>';
+        echo '<textarea id="andw-log" class="andw-log" rows="20" readonly="readonly"></textarea>';
         echo '<footer class="andw-footer">';
         echo '<div class="andw-stats" id="andw-stats"></div>';
         if ( ! empty( $permissions['reasons']['clear'] ) || ! empty( $permissions['reasons']['download'] ) ) {
@@ -512,7 +512,6 @@ class Andw_Admin {
         $file_writable = $file_exists && is_writable( $wp_config_path );
         $backup_exists = file_exists( $backup_path );
 
-        echo '<h2>' . esc_html__( 'wp-config.php エディター', 'andw-debug-viewer' ) . '</h2>';
 
         if ( ! $file_exists ) {
             echo '<div class="notice notice-error"><p>';
@@ -540,14 +539,28 @@ class Andw_Admin {
         }
 
         // ファイル情報
-        echo '<div class="andw-file-info">';
-        echo '<h3>' . esc_html__( 'ファイル情報', 'andw-debug-viewer' ) . '</h3>';
-        echo '<ul>';
-        echo '<li>' . sprintf( esc_html__( 'パス: %s', 'andw-debug-viewer' ), esc_html( $wp_config_path ) ) . '</li>';
-        echo '<li>' . sprintf( esc_html__( 'サイズ: %s bytes', 'andw-debug-viewer' ), number_format( filesize( $wp_config_path ) ) ) . '</li>';
-        echo '<li>' . sprintf( esc_html__( '最終更新: %s', 'andw-debug-viewer' ), date_i18n( 'Y-m-d H:i:s', filemtime( $wp_config_path ) ) ) . '</li>';
-        echo '<li>' . sprintf( esc_html__( '書き込み可能: %s', 'andw-debug-viewer' ), $file_writable ? 'はい' : 'いいえ' ) . '</li>';
-        echo '</ul>';
+        echo '<div class="andw-file-info" style="margin-bottom: 15px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">';
+        echo '<h3 style="margin: 0 0 8px 0;">' . esc_html__( 'ファイル情報', 'andw-debug-viewer' ) . '</h3>';
+
+        $file_size = number_format( filesize( $wp_config_path ) );
+        $file_modified = date_i18n( 'Y-m-d H:i:s', filemtime( $wp_config_path ) );
+        $file_writable_text = $file_writable ? 'はい' : 'いいえ';
+
+        echo '<div style="font-size: 13px; color: #666;">';
+        echo sprintf(
+            esc_html__( 'パス: %s', 'andw-debug-viewer' ),
+            '<code>' . esc_html( $wp_config_path ) . '</code>'
+        );
+        echo '<br>';
+        echo sprintf(
+            esc_html__( 'サイズ: %s bytes', 'andw-debug-viewer' ) . ' | ' .
+            esc_html__( '最終更新: %s', 'andw-debug-viewer' ) . ' | ' .
+            esc_html__( '書き込み可能: %s', 'andw-debug-viewer' ),
+            $file_size,
+            $file_modified,
+            $file_writable_text
+        );
+        echo '</div>';
         echo '</div>';
 
         // エディター
@@ -611,10 +624,10 @@ class Andw_Admin {
         }
 
 
-        echo '<div class="andw-config-snippet" style="margin-bottom: 12px;">';
+        echo '<div class="andw-config-snippet" style="margin-bottom: 12px;margin-top: 1rem;">';
         echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
-        $snippet = "defined( 'WP_DEBUG' ) || define( 'WP_DEBUG', true );\n\ndefined( 'WP_DEBUG_LOG' ) || define( 'WP_DEBUG_LOG', true );\n\ndefined( 'WP_DEBUG_DISPLAY' ) || define( 'WP_DEBUG_DISPLAY', false );";
-        echo '<textarea class="andw-config-snippet__textarea" readonly rows="11" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
+        $snippet = "defined( 'WP_DEBUG' ) || define( 'WP_DEBUG', true );\ndefined( 'WP_DEBUG_LOG' ) || define( 'WP_DEBUG_LOG', true );\ndefined( 'WP_DEBUG_DISPLAY' ) || define( 'WP_DEBUG_DISPLAY', false );";
+        echo '<textarea class="andw-config-snippet__textarea" readonly rows="3" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
         echo '</div>';
 
 
@@ -944,7 +957,7 @@ class Andw_Admin {
         $actual_logging_works = $debug_log_working || $temp_logging_active || $temp_session_active;
 
         // 常時状態を表示
-        echo '<div class="andw-temp-logging-compact" style="border-radius: 4px; padding: 10px; margin: 10px 0;">';
+        echo '<div class="andw-temp-logging-compact" style="border-radius: 4px; padding: 10px 0 0 0; margin: 10px 0 0 0;">';
 
         if ( $temp_logging_active && $expires ) {
             // 一時ログ有効中
