@@ -535,13 +535,25 @@ class Andw_Admin {
         }
         echo '>' . esc_textarea( $content ) . '</textarea>';
 
+        // JavaScript to scroll to bottom when tab is opened
+        echo '<script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var editor = document.getElementById("wp-config-editor");
+            if (editor) {
+                editor.scrollTop = editor.scrollHeight;
+                editor.focus();
+                // Move cursor to end
+                if (editor.setSelectionRange) {
+                    var len = editor.value.length;
+                    editor.setSelectionRange(len, len);
+                }
+            }
+        });
+        </script>';
+
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
 
-        echo '<div class="andw-config-snippet" style="margin-bottom: 12px;">';
-        echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
-        $snippet = "if ( ! defined( 'WP_DEBUG' ) ) {\n\tdefine( 'WP_DEBUG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_LOG' ) ) {\n\tdefine( 'WP_DEBUG_LOG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {\n\tdefine( 'WP_DEBUG_DISPLAY', false );\n}";
-        echo '<textarea class="andw-config-snippet__textarea" readonly rows="7" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
-        echo '</div>';
+
 
         if ( $file_writable ) {
             submit_button( __( '💾 保存', 'andw-debug-viewer' ), 'primary', 'save_config', false );
@@ -564,6 +576,14 @@ class Andw_Admin {
             submit_button( __( '🔄 バックアップから復元', 'andw-debug-viewer' ), 'secondary', 'restore_config', false );
             echo '</form>';
         }
+
+
+        echo '<div class="andw-config-snippet" style="margin-bottom: 12px;">';
+        echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
+        $snippet = "if ( ! defined( 'WP_DEBUG' ) ) {\n\tdefine( 'WP_DEBUG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_LOG' ) ) {\n\tdefine( 'WP_DEBUG_LOG', true );\n}\n\nif ( ! defined( 'WP_DEBUG_DISPLAY' ) ) {\n\tdefine( 'WP_DEBUG_DISPLAY', false );\n}";
+        echo '<textarea class="andw-config-snippet__textarea" readonly rows="11" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
+        echo '</div>';
+
 
         echo '</div>';
 
