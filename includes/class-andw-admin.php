@@ -31,6 +31,9 @@ class Andw_Admin {
         add_action( 'admin_post_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
         add_action( 'admin_post_andw_test_log_output', array( $this, 'handle_test_log_output' ) );
         add_action( 'admin_post_andw_end_debug_log_usage', array( $this, 'handle_end_debug_log_usage' ) );
+        add_action( 'admin_post_andw_save_wp_config', array( $this, 'handle_save_wp_config' ) );
+        add_action( 'admin_post_andw_backup_wp_config', array( $this, 'handle_backup_wp_config' ) );
+        add_action( 'admin_post_andw_restore_wp_config', array( $this, 'handle_restore_wp_config' ) );
 
         // 汎用的なadmin-post.phpデバッグ
         add_action( 'admin_post_nopriv_andw_toggle_temp_logging', array( $this, 'handle_temp_logging_toggle' ) );
@@ -281,7 +284,7 @@ class Andw_Admin {
             $active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'viewer';
         }
 
-        if ( ! in_array( $active_tab, array( 'viewer', 'settings' ), true ) ) {
+        if ( ! in_array( $active_tab, array( 'viewer', 'settings', 'wp-config' ), true ) ) {
             $active_tab = 'viewer';
         }
 
@@ -294,6 +297,8 @@ class Andw_Admin {
 
         if ( 'settings' === $active_tab ) {
             $this->render_settings_tab( $permissions );
+        } elseif ( 'wp-config' === $active_tab ) {
+            $this->render_wp_config_tab( $permissions );
         } else {
             $this->render_viewer_tab( $permissions );
         }
@@ -309,8 +314,9 @@ class Andw_Admin {
      */
     private function render_tabs( $active ) {
         $tabs = array(
-            'viewer'   => __( 'ログビューアー', 'andw-debug-viewer' ),
-            'settings' => __( '設定', 'andw-debug-viewer' ),
+            'viewer'    => __( 'ログビューアー', 'andw-debug-viewer' ),
+            'wp-config' => __( 'wp-config.php', 'andw-debug-viewer' ),
+            'settings'  => __( '設定', 'andw-debug-viewer' ),
         );
 
         $base_url = is_network_admin() ? network_admin_url( 'admin.php' ) : admin_url( 'admin.php' );
@@ -456,6 +462,110 @@ class Andw_Admin {
         submit_button();
         echo '</form>';
 
+
+        echo '</section>';
+    }
+
+    /**
+     * Render wp-config.php editor tab.
+     *
+     * @param array $permissions Permissions context.
+     * @return void
+     */
+    private function render_wp_config_tab( array $permissions ) {
+        echo '<section class="andw-wp-config-editor">';
+
+        $wp_config_path = ABSPATH . 'wp-config.php';
+        $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
+
+        // ファイル状態の確認
+        $file_exists = file_exists( $wp_config_path );
+        $file_writable = $file_exists && is_writable( $wp_config_path );
+        $backup_exists = file_exists( $backup_path );
+
+        echo '<h2>' . esc_html__( 'wp-config.php エディター', 'andw-debug-viewer' ) . '</h2>';
+
+        if ( ! $file_exists ) {
+            echo '<div class="notice notice-error"><p>';
+            echo esc_html__( 'wp-config.php ファイルが見つかりません。', 'andw-debug-viewer' );
+            echo '</p></div>';
+            echo '</section>';
+            return;
+        }
+
+        if ( ! $file_writable ) {
+            echo '<div class="notice notice-warning"><p>';
+            echo esc_html__( 'wp-config.php ファイルに書き込み権限がありません。', 'andw-debug-viewer' );
+            echo '</p></div>';
+        }
+
+        // バックアップ状態の表示
+        if ( $backup_exists ) {
+            $backup_time = filemtime( $backup_path );
+            echo '<div class="notice notice-info"><p>';
+            echo sprintf(
+                esc_html__( 'バックアップファイルが存在します（%s）', 'andw-debug-viewer' ),
+                date_i18n( 'Y-m-d H:i:s', $backup_time )
+            );
+            echo '</p></div>';
+        }
+
+        // ファイル情報
+        echo '<div class="andw-file-info">';
+        echo '<h3>' . esc_html__( 'ファイル情報', 'andw-debug-viewer' ) . '</h3>';
+        echo '<ul>';
+        echo '<li>' . sprintf( esc_html__( 'パス: %s', 'andw-debug-viewer' ), esc_html( $wp_config_path ) ) . '</li>';
+        echo '<li>' . sprintf( esc_html__( 'サイズ: %s bytes', 'andw-debug-viewer' ), number_format( filesize( $wp_config_path ) ) ) . '</li>';
+        echo '<li>' . sprintf( esc_html__( '最終更新: %s', 'andw-debug-viewer' ), date_i18n( 'Y-m-d H:i:s', filemtime( $wp_config_path ) ) ) . '</li>';
+        echo '<li>' . sprintf( esc_html__( '書き込み可能: %s', 'andw-debug-viewer' ), $file_writable ? 'はい' : 'いいえ' ) . '</li>';
+        echo '</ul>';
+        echo '</div>';
+
+        // エディター
+        $content = file_get_contents( $wp_config_path );
+
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        wp_nonce_field( 'andw_wp_config_save', 'andw_wp_config_nonce' );
+        echo '<input type="hidden" name="action" value="andw_save_wp_config">';
+
+        echo '<h3>' . esc_html__( 'ファイル内容', 'andw-debug-viewer' ) . '</h3>';
+        echo '<textarea name="wp_config_content" id="wp-config-editor" rows="30" style="width: 100%; font-family: monospace; font-size: 12px;"';
+        if ( ! $file_writable ) {
+            echo ' readonly';
+        }
+        echo '>' . esc_textarea( $content ) . '</textarea>';
+
+        echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
+
+        if ( $file_writable ) {
+            submit_button( __( '💾 保存', 'andw-debug-viewer' ), 'primary', 'save_config', false );
+            echo ' ';
+        }
+
+        echo '</form>';
+
+        // バックアップ・復元ボタン
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display: inline-block; margin-right: 10px;">';
+        wp_nonce_field( 'andw_wp_config_backup', 'andw_wp_config_nonce' );
+        echo '<input type="hidden" name="action" value="andw_backup_wp_config">';
+        submit_button( __( '🗃️ バックアップ作成', 'andw-debug-viewer' ), 'secondary', 'backup_config', false );
+        echo '</form>';
+
+        if ( $backup_exists ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display: inline-block;" onsubmit="return confirm(\'' . esc_js( __( 'バックアップから復元しますか？現在の内容は失われます。', 'andw-debug-viewer' ) ) . '\')">';
+            wp_nonce_field( 'andw_wp_config_restore', 'andw_wp_config_nonce' );
+            echo '<input type="hidden" name="action" value="andw_restore_wp_config">';
+            submit_button( __( '🔄 バックアップから復元', 'andw-debug-viewer' ), 'secondary', 'restore_config', false );
+            echo '</form>';
+        }
+
+        echo '</div>';
+
+        // 注意事項
+        echo '<div class="notice notice-warning" style="margin-top: 20px;"><p>';
+        echo '<strong>' . esc_html__( '⚠️ 注意:', 'andw-debug-viewer' ) . '</strong> ';
+        echo esc_html__( 'wp-config.php の編集は慎重に行ってください。構文エラーがあるとサイトが動作しなくなる可能性があります。', 'andw-debug-viewer' );
+        echo '</p></div>';
 
         echo '</section>';
     }
@@ -977,7 +1087,7 @@ class Andw_Admin {
      */
     private function maybe_render_notice() {
         // nonce検証
-        if ( ( isset( $_GET['override_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] ) ) ) {
+        if ( ( isset( $_GET['override_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] ) || isset( $_GET['wp_config_message'] ) ) ) {
             if ( empty( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_notice_redirect' ) ) {
                 return;
             }
@@ -986,6 +1096,7 @@ class Andw_Admin {
         $override_message = isset( $_GET['override_message'] ) ? sanitize_key( $_GET['override_message'] ) : '';
         $temp_logging_message = isset( $_GET['temp_logging_message'] ) ? sanitize_key( $_GET['temp_logging_message'] ) : '';
         $legacy_message = isset( $_GET['andw_message'] ) ? sanitize_key( $_GET['andw_message'] ) : '';
+        $wp_config_message = isset( $_GET['wp_config_message'] ) ? sanitize_key( $_GET['wp_config_message'] ) : '';
 
         $messages = array(
             'prod_enabled'         => __( 'WP_DEBUG=false 環境で60分間の一時許可を有効化しました。', 'andw-debug-viewer' ),
@@ -996,15 +1107,31 @@ class Andw_Admin {
             'temp_logging_enabled' => __( '一時ログ出力を有効にしました（60分間）。', 'andw-debug-viewer' ),
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
             'temp_logging_error'   => __( 'ログ出力設定の変更に失敗しました。', 'andw-debug-viewer' ),
+            'save_success'         => __( 'wp-config.php を保存しました。', 'andw-debug-viewer' ),
+            'save_failed'          => __( 'wp-config.php の保存に失敗しました。', 'andw-debug-viewer' ),
+            'syntax_error'         => __( 'PHP構文エラーがあります。保存できませんでした。', 'andw-debug-viewer' ),
+            'config_not_writable'  => __( 'wp-config.php に書き込み権限がありません。', 'andw-debug-viewer' ),
+            'config_not_found'     => __( 'wp-config.php が見つかりません。', 'andw-debug-viewer' ),
+            'backup_success'       => __( 'バックアップを作成しました。', 'andw-debug-viewer' ),
+            'backup_failed'        => __( 'バックアップの作成に失敗しました。', 'andw-debug-viewer' ),
+            'backup_read_failed'   => __( 'wp-config.php の読み取りに失敗しました。', 'andw-debug-viewer' ),
+            'backup_not_found'     => __( 'バックアップファイルが見つかりません。', 'andw-debug-viewer' ),
+            'restore_success'      => __( 'バックアップから復元しました。', 'andw-debug-viewer' ),
+            'restore_failed'       => __( '復元に失敗しました。', 'andw-debug-viewer' ),
+            'restore_read_failed'  => __( 'バックアップファイルの読み取りに失敗しました。', 'andw-debug-viewer' ),
             'test_log_success'     => __( 'テスト用ログメッセージを出力しました。ログビューアーで確認してください。', 'andw-debug-viewer' ),
             'debug_log_usage_ended'=> __( 'デバッグログの使用を終了し、関連ファイルを削除しました。', 'andw-debug-viewer' ),
             'debug_log_usage_end_error' => __( 'デバッグログ使用終了処理に失敗しました。', 'andw-debug-viewer' ),
         );
 
-        $message_key = $override_message ?: $temp_logging_message ?: $legacy_message;
+        $message_key = $override_message ?: $temp_logging_message ?: $wp_config_message ?: $legacy_message;
 
         if ( ! empty( $message_key ) && isset( $messages[ $message_key ] ) ) {
-            printf( '<div class="notice notice-success is-dismissible"><p>%s</p></div>', esc_html( $messages[ $message_key ] ) );
+            $notice_type = 'success';
+            if ( strpos( $message_key, 'error' ) !== false || strpos( $message_key, 'failed' ) !== false || strpos( $message_key, 'syntax' ) !== false ) {
+                $notice_type = 'error';
+            }
+            printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', esc_attr( $notice_type ), esc_html( $messages[ $message_key ] ) );
         }
     }
 
@@ -1337,6 +1464,182 @@ class Andw_Admin {
         } else {
             wp_send_json_error( array( 'message' => $message ) );
         }
+    }
+
+    /**
+     * Handle wp-config.php save request.
+     *
+     * @return void
+     */
+    public function handle_save_wp_config() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
+        }
+
+        if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_save' ) ) {
+            wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
+        }
+
+        $wp_config_path = ABSPATH . 'wp-config.php';
+
+        if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
+            $this->redirect_with_message( 'wp-config', 'config_not_writable' );
+            return;
+        }
+
+        $content = isset( $_POST['wp_config_content'] ) ? wp_unslash( $_POST['wp_config_content'] ) : '';
+
+        // Basic PHP syntax check
+        if ( ! $this->validate_php_syntax( $content ) ) {
+            $this->redirect_with_message( 'wp-config', 'syntax_error' );
+            return;
+        }
+
+        $result = file_put_contents( $wp_config_path, $content );
+
+        if ( false === $result ) {
+            $this->redirect_with_message( 'wp-config', 'save_failed' );
+        } else {
+            $this->redirect_with_message( 'wp-config', 'save_success' );
+        }
+    }
+
+    /**
+     * Handle wp-config.php backup request.
+     *
+     * @return void
+     */
+    public function handle_backup_wp_config() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
+        }
+
+        if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_backup' ) ) {
+            wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
+        }
+
+        $wp_config_path = ABSPATH . 'wp-config.php';
+        $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
+
+        if ( ! file_exists( $wp_config_path ) ) {
+            $this->redirect_with_message( 'wp-config', 'config_not_found' );
+            return;
+        }
+
+        $content = file_get_contents( $wp_config_path );
+        if ( false === $content ) {
+            $this->redirect_with_message( 'wp-config', 'backup_read_failed' );
+            return;
+        }
+
+        $result = file_put_contents( $backup_path, $content );
+
+        if ( false === $result ) {
+            $this->redirect_with_message( 'wp-config', 'backup_failed' );
+        } else {
+            $this->redirect_with_message( 'wp-config', 'backup_success' );
+        }
+    }
+
+    /**
+     * Handle wp-config.php restore request.
+     *
+     * @return void
+     */
+    public function handle_restore_wp_config() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
+        }
+
+        if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_restore' ) ) {
+            wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
+        }
+
+        $wp_config_path = ABSPATH . 'wp-config.php';
+        $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
+
+        if ( ! file_exists( $backup_path ) ) {
+            $this->redirect_with_message( 'wp-config', 'backup_not_found' );
+            return;
+        }
+
+        if ( ! is_writable( $wp_config_path ) ) {
+            $this->redirect_with_message( 'wp-config', 'config_not_writable' );
+            return;
+        }
+
+        $backup_content = file_get_contents( $backup_path );
+        if ( false === $backup_content ) {
+            $this->redirect_with_message( 'wp-config', 'restore_read_failed' );
+            return;
+        }
+
+        $result = file_put_contents( $wp_config_path, $backup_content );
+
+        if ( false === $result ) {
+            $this->redirect_with_message( 'wp-config', 'restore_failed' );
+        } else {
+            $this->redirect_with_message( 'wp-config', 'restore_success' );
+        }
+    }
+
+    /**
+     * Validate PHP syntax without executing code.
+     *
+     * @param string $code PHP code to validate.
+     * @return bool True if syntax is valid.
+     */
+    private function validate_php_syntax( $code ) {
+        // Basic checks
+        if ( empty( $code ) || ! is_string( $code ) ) {
+            return false;
+        }
+
+        // Check if it starts with <?php
+        if ( strpos( trim( $code ), '<?php' ) !== 0 ) {
+            return false;
+        }
+
+        // Use php -l for syntax checking if available
+        if ( function_exists( 'exec' ) ) {
+            $temp_file = tempnam( sys_get_temp_dir(), 'wp_config_check' );
+            if ( $temp_file ) {
+                file_put_contents( $temp_file, $code );
+                exec( "php -l $temp_file 2>&1", $output, $return_code );
+                unlink( $temp_file );
+                return 0 === $return_code;
+            }
+        }
+
+        // Fallback: basic pattern matching
+        $brackets = substr_count( $code, '{' ) - substr_count( $code, '}' );
+        $parens = substr_count( $code, '(' ) - substr_count( $code, ')' );
+
+        return 0 === $brackets && 0 === $parens;
+    }
+
+    /**
+     * Redirect with message for wp-config tab.
+     *
+     * @param string $tab Tab name.
+     * @param string $message Message key.
+     * @return void
+     */
+    private function redirect_with_message( $tab, $message ) {
+        $redirect_url = wp_nonce_url(
+            add_query_arg(
+                array(
+                    'page' => 'andw-debug-viewer',
+                    'tab'  => $tab,
+                    'wp_config_message' => $message,
+                ),
+                admin_url( 'admin.php' )
+            ),
+            'andw_notice_redirect'
+        );
+
+        wp_safe_redirect( $redirect_url );
+        exit;
     }
 
 }
