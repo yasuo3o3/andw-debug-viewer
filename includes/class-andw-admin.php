@@ -572,7 +572,7 @@ class Andw_Admin {
         echo '<input type="hidden" name="current_tab" value="wp-config">';
 
         echo '<h3>' . esc_html__( 'ファイル内容', 'andw-debug-viewer' ) . '</h3>';
-        echo '<textarea name="wp_config_content" id="wp-config-editor" rows="15" style="width: 100%; font-family: monospace; font-size: 12px;"';
+        echo '<textarea name="wp_config_content" id="wp-config-editor" rows="20" style="width: 100%; font-family: monospace; font-size: 12px;"';
         if ( ! $file_writable ) {
             echo ' readonly';
         }
@@ -647,6 +647,12 @@ class Andw_Admin {
         echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
         $snippet = "defined( 'WP_DEBUG' ) || define( 'WP_DEBUG', true );\ndefined( 'WP_DEBUG_LOG' ) || define( 'WP_DEBUG_LOG', true );\ndefined( 'WP_DEBUG_DISPLAY' ) || define( 'WP_DEBUG_DISPLAY', false );";
         echo '<textarea class="andw-config-snippet__textarea" readonly rows="3" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $snippet ) . '</textarea>';
+        echo '</div>';
+
+        echo '<div class="andw-config-snippet" style="margin-bottom: 12px;">';
+        echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を無効にする例', 'andw-debug-viewer' ) . '</p>';
+        $disable_snippet = "defined( 'WP_DEBUG' ) || define( 'WP_DEBUG', false );\ndefined( 'WP_DEBUG_LOG' ) || define( 'WP_DEBUG_LOG', false );\ndefined( 'WP_DEBUG_DISPLAY' ) || define( 'WP_DEBUG_DISPLAY', false );";
+        echo '<textarea class="andw-config-snippet__textarea" readonly rows="3" style="width: 100%; font-family: monospace; font-size: 12px;">' . esc_textarea( $disable_snippet ) . '</textarea>';
         echo '</div>';
 
 
