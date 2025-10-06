@@ -580,18 +580,37 @@ class Andw_Admin {
 
         // JavaScript to scroll to bottom when tab is opened
         echo '<script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var editor = document.getElementById("wp-config-editor");
-            if (editor) {
-                editor.scrollTop = editor.scrollHeight;
-                editor.focus();
-                // Move cursor to end
-                if (editor.setSelectionRange) {
-                    var len = editor.value.length;
-                    editor.setSelectionRange(len, len);
+        (function() {
+            function scrollToBottom() {
+                var editor = document.getElementById("wp-config-editor");
+                if (editor) {
+                    editor.scrollTop = editor.scrollHeight;
+                    editor.focus();
+                    // Move cursor to end
+                    if (editor.setSelectionRange) {
+                        var len = editor.value.length;
+                        editor.setSelectionRange(len, len);
+                    }
                 }
             }
-        });
+
+            // 複数のタイミングで実行してより確実にする
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", function() {
+                    setTimeout(scrollToBottom, 50);
+                    setTimeout(scrollToBottom, 200);
+                    setTimeout(scrollToBottom, 500);
+                });
+            } else {
+                setTimeout(scrollToBottom, 50);
+                setTimeout(scrollToBottom, 200);
+            }
+
+            // ページ読み込み完了後にも実行
+            window.addEventListener("load", function() {
+                setTimeout(scrollToBottom, 100);
+            });
+        })();
         </script>';
 
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';

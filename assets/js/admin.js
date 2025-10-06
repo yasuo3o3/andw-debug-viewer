@@ -65,6 +65,8 @@
     function renderLog(result) {
         if (textarea) {
             textarea.value = result.log || '';
+            // テキストエリアを最下部にスクロール
+            textarea.scrollTop = textarea.scrollHeight;
         }
         if (result.meta && result.meta.fallback && strings.fallbackNote) {
             setStatus(strings.fallbackNote, 'warning');
