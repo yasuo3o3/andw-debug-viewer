@@ -527,6 +527,7 @@ class Andw_Admin {
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         wp_nonce_field( 'andw_wp_config_save', 'andw_wp_config_nonce' );
         echo '<input type="hidden" name="action" value="andw_save_wp_config">';
+        echo '<input type="hidden" name="current_tab" value="wp-config">';
 
         echo '<h3>' . esc_html__( 'ファイル内容', 'andw-debug-viewer' ) . '</h3>';
         echo '<textarea name="wp_config_content" id="wp-config-editor" rows="15" style="width: 100%; font-family: monospace; font-size: 12px;"';
