@@ -329,7 +329,7 @@ class Andw_Admin {
         echo '<div class="wrap andw-wrap">';
         echo '<h1>' . esc_html__( 'andW Debug Viewer', 'andw-debug-viewer' ) . '</h1>';
         $this->render_tabs( $active_tab );
-        $this->maybe_render_notice();
+        $this->maybe_render_notice( $active_tab );
 
         if ( 'settings' === $active_tab ) {
             $this->render_settings_tab( $permissions );
@@ -663,6 +663,11 @@ class Andw_Admin {
             echo '</button>';
         }
 
+        // 注意事項（保存ボタンの下に移動）
+        echo '<div class="notice notice-warning" style="margin-top: 20px;"><p>';
+        echo '<strong>' . esc_html__( '⚠️ 注意:', 'andw-debug-viewer' ) . '</strong> ';
+        echo esc_html__( 'wp-config.php の編集は慎重に行ってください。構文エラーがあるとサイトが動作しなくなる可能性があります。', 'andw-debug-viewer' );
+        echo '</p></div>';
 
         echo '<div class="andw-config-snippet" style="margin-bottom: 12px;margin-top: 1rem;">';
         echo '<p style="margin: 0 0 6px;">' . esc_html__( 'WP_DEBUG と WP_DEBUG_LOG を有効にする例', 'andw-debug-viewer' ) . '</p>';
@@ -678,12 +683,6 @@ class Andw_Admin {
 
 
         echo '</div>';
-
-        // 注意事項
-        echo '<div class="notice notice-warning" style="margin-top: 20px;"><p>';
-        echo '<strong>' . esc_html__( '⚠️ 注意:', 'andw-debug-viewer' ) . '</strong> ';
-        echo esc_html__( 'wp-config.php の編集は慎重に行ってください。構文エラーがあるとサイトが動作しなくなる可能性があります。', 'andw-debug-viewer' );
-        echo '</p></div>';
 
         echo '</section>';
     }
@@ -1203,12 +1202,17 @@ class Andw_Admin {
      *
      * @return void
      */
-    private function maybe_render_notice() {
+    private function maybe_render_notice( $active_tab = '' ) {
         // nonce検証
         if ( ( isset( $_GET['override_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] ) || isset( $_GET['wp_config_message'] ) ) ) {
             if ( empty( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_notice_redirect' ) ) {
                 return;
             }
+        }
+
+        // wp-configタブでwp_config_messageがある場合は最上部通知を表示しない（重複回避）
+        if ( 'wp-config' === $active_tab && isset( $_GET['wp_config_message'] ) ) {
+            return;
         }
 
         $override_message = isset( $_GET['override_message'] ) ? sanitize_key( $_GET['override_message'] ) : '';

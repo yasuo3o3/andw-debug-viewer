@@ -50,9 +50,14 @@
                 highlightWpDebugLines(cm);
             });
 
-            // 初回ハイライト実行
+            // 初回ハイライト実行と最終行スクロール
             setTimeout(function() {
                 highlightWpDebugLines(cm);
+
+                // 最終行へスクロール（従来の動作を復元）
+                const lastLine = cm.lineCount() - 1;
+                cm.setCursor(lastLine, cm.getLine(lastLine).length);
+                cm.scrollIntoView(null);
             }, 100);
 
             console.log('andW Debug Viewer: CodeMirror initialized successfully');
