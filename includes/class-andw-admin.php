@@ -279,6 +279,9 @@ class Andw_Admin {
             'andwData',
             $this->prepare_localized_data( $permissions, $is_network )
         );
+
+        // wp-configタブでのみCodeMirrorを読み込み
+        $this->enqueue_codemirror_for_wp_config( $hook );
     }
 
     /**
@@ -1791,6 +1794,139 @@ class Andw_Admin {
 
         wp_safe_redirect( $redirect_url );
         exit;
+    }
+
+    /**
+     * Enqueue CodeMirror for wp-config editor with collision avoidance.
+     *
+     * @param string $hook Current admin page hook.
+     * @return void
+     */
+    private function enqueue_codemirror_for_wp_config( $hook ) {
+        // 複数の条件でwp-configタブの表示を判定
+        $is_wp_config_tab = false;
+
+        // 1. URLパラメータによる判定
+        if ( isset( $_GET['tab'] ) && 'wp-config' === sanitize_key( $_GET['tab'] ) ) {
+            $is_wp_config_tab = true;
+        }
+
+        // 2. デフォルトタブ判定（他のタブが指定されていない場合）
+        if ( ! isset( $_GET['tab'] ) ) {
+            // デフォルトはviewerタブなので、wp-configタブではない
+            $is_wp_config_tab = false;
+        }
+
+        // 3. フォールバック: 現在の画面IDで判定
+        if ( ! $is_wp_config_tab ) {
+            $screen = get_current_screen();
+            if ( $screen && 'toplevel_page_andw-debug-viewer' === $screen->id && isset( $_GET['tab'] ) && 'wp-config' === $_GET['tab'] ) {
+                $is_wp_config_tab = true;
+            }
+        }
+
+        // wp-configタブ以外では読み込まない
+        if ( ! $is_wp_config_tab ) {
+            return;
+        }
+
+        // 権限チェック
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        // マルチサイト環境での追加チェック
+        if ( is_multisite() && is_network_admin() && ! current_user_can( 'manage_network_options' ) ) {
+            return;
+        }
+
+        // WordPress標準のCodeMirrorが利用可能かチェック
+        $use_wp_codemirror = function_exists( 'wp_enqueue_code_editor' );
+
+        if ( $use_wp_codemirror ) {
+            // WordPress 4.9以降の標準CodeMirrorを使用
+            $this->enqueue_wp_standard_codemirror();
+        } else {
+            // フォールバック: 独自CodeMirrorの読み込み（将来的な拡張用）
+            $this->enqueue_custom_codemirror();
+        }
+    }
+
+    /**
+     * Enqueue WordPress standard CodeMirror.
+     *
+     * @return void
+     */
+    private function enqueue_wp_standard_codemirror() {
+        // 二重ロード防止チェック
+        if ( wp_script_is( 'andw-codemirror-config', 'enqueued' ) ) {
+            return;
+        }
+
+        // CodeMirrorの設定
+        $codemirror_settings = wp_enqueue_code_editor( array(
+            'type' => 'text/x-php',
+            'codemirror' => array(
+                'lineNumbers' => true,
+                'lineWrapping' => true,
+                'matchBrackets' => true,
+                'autoCloseBrackets' => true,
+                'mode' => 'text/x-php',
+                'theme' => 'default',
+                'extraKeys' => array(
+                    'Ctrl-Space' => 'autocomplete',
+                ),
+            ),
+        ) );
+
+        // CodeMirror初期化が失敗した場合の処理
+        if ( false === $codemirror_settings ) {
+            return;
+        }
+
+        // 独自の初期化スクリプトをenqueue
+        wp_enqueue_script(
+            'andw-codemirror-config',
+            ANDW_PLUGIN_URL . 'assets/js/codemirror-config.js',
+            array( 'code-editor', 'wp-theme-plugin-editor' ),
+            ANDW_VERSION,
+            true
+        );
+
+        // WP_DEBUGハイライト設定をローカライズ
+        wp_localize_script(
+            'andw-codemirror-config',
+            'andwCodeMirrorConfig',
+            array(
+                'settings' => $codemirror_settings,
+                'wpDebugHighlight' => array(
+                    'enabled' => true,
+                ),
+                'i18n' => array(
+                    'initError' => __( 'CodeMirrorの初期化に失敗しました。', 'andw-debug-viewer' ),
+                    'fallbackMode' => __( '標準のテキストエディタを使用します。', 'andw-debug-viewer' ),
+                ),
+            )
+        );
+
+        // 独自CSSもenqueue
+        wp_enqueue_style(
+            'andw-codemirror-style',
+            ANDW_PLUGIN_URL . 'assets/css/codemirror-custom.css',
+            array( 'code-editor' ),
+            ANDW_VERSION
+        );
+    }
+
+    /**
+     * Enqueue custom CodeMirror (fallback for older WordPress).
+     *
+     * @return void
+     */
+    private function enqueue_custom_codemirror() {
+        // WordPress 4.9未満での独自実装（現在は空実装）
+        // 必要に応じて将来的に拡張
+        error_log( 'andW Debug Viewer: WordPress version does not support wp_enqueue_code_editor' );
     }
 
 }

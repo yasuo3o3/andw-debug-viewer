@@ -1,0 +1,117 @@
+/* andW Debug Viewer - CodeMirror Custom Styles */
+
+/* WP_DEBUG行のハイライト */
+.CodeMirror .andw-wp-debug-line {
+    background-color: rgb(254, 255, 159) !important;
+    border-left: 4px solid #ffc107;
+    position: relative;
+}
+
+/* WP_DEBUGテキストの強調 */
+.CodeMirror .andw-wp-debug-text {
+    font-weight: bold !important;
+    background-color: rgb(254, 255, 159);
+}
+
+/* wp-configエディタ専用のスタイル調整 */
+#wp-config-editor.CodeMirror {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+/* wp-configエディタのガター */
+#wp-config-editor.CodeMirror .CodeMirror-gutters {
+    background-color: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+}
+
+#wp-config-editor.CodeMirror .CodeMirror-linenumber {
+    color: #6c757d;
+    padding: 0 8px 0 5px;
+}
+
+/* アクティブ行のスタイル */
+#wp-config-editor.CodeMirror .CodeMirror-activeline-background {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* フォーカス時のスタイル */
+#wp-config-editor.CodeMirror.CodeMirror-focused .CodeMirror-selected {
+    background-color: #b3d4fc;
+}
+
+/* 検索・置換のハイライト */
+#wp-config-editor.CodeMirror .cm-searching {
+    background-color: #ffeb3b;
+    color: #000;
+}
+
+/* エラー表示用スタイル */
+.andw-codemirror-error {
+    border: 1px solid #dc3545;
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+/* 読み込み中表示 */
+.andw-codemirror-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    color: #6c757d;
+}
+
+.andw-codemirror-loading::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    border: 2px solid #dee2e6;
+    border-top: 2px solid #007cba;
+    border-radius: 50%;
+    animation: andw-spin 1s linear infinite;
+}
+
+@keyframes andw-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ダークモード対応（将来的な拡張） */
+@media (prefers-color-scheme: dark) {
+    .CodeMirror .andw-wp-debug-line {
+        background-color: rgba(254, 255, 159, 0.3) !important;
+        border-left-color: #ffc107;
+    }
+
+    .CodeMirror .andw-wp-debug-text {
+        background-color: rgba(254, 255, 159, 0.2);
+    }
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    #wp-config-editor.CodeMirror {
+        font-size: 12px;
+    }
+
+}
+
+/* 印刷時のスタイル */
+@media print {
+    .CodeMirror .andw-wp-debug-line {
+        background-color: #f0f0f0 !important;
+        border-left: 2px solid #000;
+    }
+
+}

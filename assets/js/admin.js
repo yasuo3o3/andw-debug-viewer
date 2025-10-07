@@ -325,7 +325,8 @@
                         }, 1000);
                     } else {
                         if (response.redirect_to_config) {
-                            // wp-configタブにリダイレクト
+                            // wp-configタブにリダイレクト（アラート付き）
+                            alert('⚠️ WP_DEBUG_LOGが無効です。wp-configタブで手動設定してください。');
                             const url = new URL(window.location);
                             url.searchParams.set('tab', 'wp-config');
                             window.location.href = url.toString();
