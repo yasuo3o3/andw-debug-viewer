@@ -2,6 +2,11 @@
     max-width: 1000px;
 }
 
+/* wp-configタブの特定注意文を非表示（より安全な方法） */
+.andw-wrap h1 + .notice.notice-warning {
+    display: none !important;
+}
+
 .andw-toolbar {
     display: flex;
     flex-wrap: wrap;

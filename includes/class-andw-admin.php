@@ -45,7 +45,6 @@ class Andw_Admin {
 
         // WP_DEBUG_LOG管理Ajax
         add_action( 'wp_ajax_andw_check_debug_log', array( $this, 'ajax_check_debug_log' ) );
-        add_action( 'wp_ajax_andw_restore_wp_config', array( $this, 'ajax_restore_wp_config' ) );
     }
 
     /**
@@ -535,10 +534,6 @@ class Andw_Admin {
             echo '</p></div>';
         }
 
-        // WP_DEBUG_LOG管理用のバックアップを自動作成
-        if ( $file_exists && ! defined( 'WP_DEBUG_LOG' ) || ( defined( 'WP_DEBUG_LOG' ) && ! WP_DEBUG_LOG ) ) {
-            Andw_Debug_Log_Helper::create_wp_config_backup();
-        }
 
         // バックアップ状態の表示
         if ( $backup_exists ) {
@@ -585,6 +580,31 @@ class Andw_Admin {
         echo '<input type="hidden" name="current_tab" value="wp-config">';
 
         echo '<h3>' . esc_html__( 'ファイル内容', 'andw-debug-viewer' ) . '</h3>';
+
+        echo '</form>';
+
+        // バックアップ・復元ボタン
+        echo '<div style="margin-bottom: 15px;">';
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display: inline-block; margin-right: 10px;">';
+        wp_nonce_field( 'andw_wp_config_backup', 'andw_wp_config_nonce' );
+        echo '<input type="hidden" name="action" value="andw_backup_wp_config">';
+        submit_button( __( '🗃️ バックアップ作成', 'andw-debug-viewer' ), 'secondary', 'backup_config', false );
+        echo '</form>';
+
+        if ( $backup_exists ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display: inline-block;" onsubmit="return confirm(\'' . esc_js( __( 'バックアップから復元しますか？現在の内容は失われます。', 'andw-debug-viewer' ) ) . '\')">';
+            wp_nonce_field( 'andw_wp_config_restore', 'andw_wp_config_nonce' );
+            echo '<input type="hidden" name="action" value="andw_restore_wp_config">';
+            submit_button( __( '🔄 バックアップから復元', 'andw-debug-viewer' ), 'secondary', 'restore_config', false );
+            echo '</form>';
+        }
+        echo '</div>';
+
+        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        wp_nonce_field( 'andw_wp_config_save', 'andw_wp_config_nonce' );
+        echo '<input type="hidden" name="action" value="andw_save_wp_config">';
+        echo '<input type="hidden" name="current_tab" value="wp-config">';
+
         echo '<textarea name="wp_config_content" id="wp-config-editor" rows="20" style="width: 100%; font-family: monospace; font-size: 12px;"';
         if ( ! $file_writable ) {
             echo ' readonly';
@@ -639,29 +659,6 @@ class Andw_Admin {
         }
 
         echo '</form>';
-
-        // バックアップ・復元ボタン
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display: inline-block; margin-right: 10px;">';
-        wp_nonce_field( 'andw_wp_config_backup', 'andw_wp_config_nonce' );
-        echo '<input type="hidden" name="action" value="andw_backup_wp_config">';
-        submit_button( __( '🗃️ バックアップ作成', 'andw-debug-viewer' ), 'secondary', 'backup_config', false );
-        echo '</form>';
-
-        if ( $backup_exists ) {
-            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display: inline-block;" onsubmit="return confirm(\'' . esc_js( __( 'バックアップから復元しますか？現在の内容は失われます。', 'andw-debug-viewer' ) ) . '\')">';
-            wp_nonce_field( 'andw_wp_config_restore', 'andw_wp_config_nonce' );
-            echo '<input type="hidden" name="action" value="andw_restore_wp_config">';
-            submit_button( __( '🔄 バックアップから復元', 'andw-debug-viewer' ), 'secondary', 'restore_config', false );
-            echo '</form>';
-        }
-
-        // WP_DEBUG_LOG管理用の復元ボタン
-        $can_restore = Andw_Debug_Log_Helper::can_restore();
-        if ( $can_restore['can_restore'] ) {
-            echo '<button type="button" id="andw-restore-wp-config" class="button button-secondary" style="margin-left: 10px;">';
-            echo esc_html__( '🔧 デバッグ設定を復元', 'andw-debug-viewer' );
-            echo '</button>';
-        }
 
         // 注意事項（保存ボタンの下に移動）
         echo '<div class="notice notice-warning" style="margin-top: 20px;"><p>';
@@ -1210,8 +1207,8 @@ class Andw_Admin {
             }
         }
 
-        // wp-configタブでwp_config_messageがある場合は最上部通知を表示しない（重複回避）
-        if ( 'wp-config' === $active_tab && isset( $_GET['wp_config_message'] ) ) {
+        // wp-configタブでは最上部通知を表示しない（タブ内で表示するため）
+        if ( 'wp-config' === $active_tab ) {
             return;
         }
 
@@ -1703,6 +1700,8 @@ class Andw_Admin {
         if ( false === $result ) {
             $this->redirect_with_message( 'wp-config', 'restore_failed' );
         } else {
+            // 復元成功後にバックアップファイルを削除
+            unlink( $backup_path );
             $this->redirect_with_message( 'wp-config', 'restore_success' );
         }
     }
@@ -1763,21 +1762,6 @@ class Andw_Admin {
         wp_send_json_success( $result );
     }
 
-    /**
-     * Ajax handler for wp-config.php restore.
-     *
-     * @return void
-     */
-    public function ajax_restore_wp_config() {
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Permission denied' ) );
-        }
-
-        check_ajax_referer( 'andw_ajax_nonce', 'nonce' );
-
-        $result = Andw_Debug_Log_Helper::restore_wp_config();
-        wp_send_json( $result );
-    }
 
     /**
      * Redirect with message for wp-config tab.

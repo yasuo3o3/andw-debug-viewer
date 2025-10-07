@@ -344,38 +344,6 @@
             });
         }
 
-        // デバッグ設定復元ボタン
-        const restoreWpConfigBtn = document.getElementById('andw-restore-wp-config');
-        if (restoreWpConfigBtn) {
-            restoreWpConfigBtn.addEventListener('click', function () {
-                if (!confirm('デバッグ設定を復元しますか？wp-config.phpが元の状態に戻ります。')) {
-                    return;
-                }
-
-                restoreWpConfigBtn.disabled = true;
-                restoreWpConfigBtn.textContent = '復元中...';
-
-                apiFetch({
-                    path: data.restUrl + 'restore-wp-config',
-                    method: 'POST',
-                    headers: getNonceHeaders()
-                }).then(function (response) {
-                    if (response.success) {
-                        alert('✅ ' + response.message);
-                        // ページをリロード
-                        window.location.reload();
-                    } else {
-                        alert('❌ ' + response.message);
-                    }
-                }).catch(function (error) {
-                    alert('❌ エラーが発生しました');
-                    console.error('Restore error:', error);
-                }).finally(function () {
-                    restoreWpConfigBtn.disabled = false;
-                    restoreWpConfigBtn.textContent = '🔧 デバッグ設定を復元';
-                });
-            });
-        }
     }
 
     function initialise() {
