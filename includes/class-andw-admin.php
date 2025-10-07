@@ -42,6 +42,10 @@ class Andw_Admin {
 
         // Ajax代替手段
         add_action( 'wp_ajax_andw_toggle_temp_logging', array( $this, 'ajax_toggle_temp_logging' ) );
+
+        // WP_DEBUG_LOG管理Ajax
+        add_action( 'wp_ajax_andw_check_debug_log', array( $this, 'ajax_check_debug_log' ) );
+        add_action( 'wp_ajax_andw_restore_wp_config', array( $this, 'ajax_restore_wp_config' ) );
     }
 
     /**
@@ -428,6 +432,7 @@ class Andw_Admin {
         echo '</div>';
 
         echo '<div class="andw-actions">';
+        echo '<button type="button" class="button button-primary" id="andw-check-debug-log">' . esc_html__( 'WP_DEBUG_LOG確認', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-refresh">' . esc_html__( '再読み込み', 'andw-debug-viewer' ) . '</button>';
         echo '<button type="button" class="button" id="andw-pause" data-paused="false">' . esc_html__( '一時停止', 'andw-debug-viewer' ) . '</button>';
         // ログ出力を抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
@@ -525,6 +530,11 @@ class Andw_Admin {
             echo '<div class="notice notice-warning"><p>';
             echo esc_html__( 'wp-config.php ファイルに書き込み権限がありません。', 'andw-debug-viewer' );
             echo '</p></div>';
+        }
+
+        // WP_DEBUG_LOG管理用のバックアップを自動作成
+        if ( $file_exists && ! defined( 'WP_DEBUG_LOG' ) || ( defined( 'WP_DEBUG_LOG' ) && ! WP_DEBUG_LOG ) ) {
+            Andw_Debug_Log_Helper::create_wp_config_backup();
         }
 
         // バックアップ状態の表示
@@ -640,6 +650,14 @@ class Andw_Admin {
             echo '<input type="hidden" name="action" value="andw_restore_wp_config">';
             submit_button( __( '🔄 バックアップから復元', 'andw-debug-viewer' ), 'secondary', 'restore_config', false );
             echo '</form>';
+        }
+
+        // WP_DEBUG_LOG管理用の復元ボタン
+        $can_restore = Andw_Debug_Log_Helper::can_restore();
+        if ( $can_restore['can_restore'] ) {
+            echo '<button type="button" id="andw-restore-wp-config" class="button button-secondary" style="margin-left: 10px;">';
+            echo esc_html__( '🔧 デバッグ設定を復元', 'andw-debug-viewer' );
+            echo '</button>';
         }
 
 
@@ -1597,6 +1615,8 @@ class Andw_Admin {
         if ( false === $result ) {
             $this->redirect_with_message( 'wp-config', 'save_failed' );
         } else {
+            // 保存後にログ出力処理
+            $log_result = Andw_Debug_Log_Helper::handle_wp_config_saved();
             $this->redirect_with_message( 'wp-config', 'save_success' );
         }
     }
@@ -1718,6 +1738,38 @@ class Andw_Admin {
         // For wp-config.php, if it has <?php and basic PHP syntax, consider it valid
         // The quote counting method is too unreliable for complex config files
         return $has_php_open && $has_basic_structure;
+    }
+
+    /**
+     * Ajax handler for WP_DEBUG_LOG status check.
+     *
+     * @return void
+     */
+    public function ajax_check_debug_log() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        check_ajax_referer( 'andw_ajax_nonce', 'nonce' );
+
+        $result = Andw_Debug_Log_Helper::check_and_output_log();
+        wp_send_json_success( $result );
+    }
+
+    /**
+     * Ajax handler for wp-config.php restore.
+     *
+     * @return void
+     */
+    public function ajax_restore_wp_config() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Permission denied' ) );
+        }
+
+        check_ajax_referer( 'andw_ajax_nonce', 'nonce' );
+
+        $result = Andw_Debug_Log_Helper::restore_wp_config();
+        wp_send_json( $result );
     }
 
     /**

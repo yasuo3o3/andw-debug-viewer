@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once ANDW_PLUGIN_DIR . 'includes/class-andw-settings.php';
 require_once ANDW_PLUGIN_DIR . 'includes/class-andw-log-reader.php';
+require_once ANDW_PLUGIN_DIR . 'includes/class-andw-debug-log-helper.php';
 require_once ANDW_PLUGIN_DIR . 'includes/class-andw-admin.php';
 require_once ANDW_PLUGIN_DIR . 'includes/class-andw-rest-controller.php';
 

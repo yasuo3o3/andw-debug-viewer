@@ -99,6 +99,26 @@ class Andw_Rest_Controller extends WP_REST_Controller {
                 ),
             )
         );
+
+        register_rest_route(
+            self::REST_NAMESPACE,
+            '/check-debug-log',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'check_debug_log' ),
+                'permission_callback' => array( $this, 'check_permissions' ),
+            )
+        );
+
+        register_rest_route(
+            self::REST_NAMESPACE,
+            '/restore-wp-config',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'restore_wp_config' ),
+                'permission_callback' => array( $this, 'check_permissions' ),
+            )
+        );
     }
 
     /**
@@ -337,5 +357,27 @@ class Andw_Rest_Controller extends WP_REST_Controller {
                 'permissions' => $this->plugin->get_permissions( is_network_admin() ),
             )
         );
+    }
+
+    /**
+     * Check WP_DEBUG_LOG status and output test log.
+     *
+     * @param WP_REST_Request $request Request object.
+     * @return WP_REST_Response
+     */
+    public function check_debug_log( WP_REST_Request $request ) {
+        $result = Andw_Debug_Log_Helper::check_and_output_log();
+        return rest_ensure_response( $result );
+    }
+
+    /**
+     * Restore wp-config.php using helper class.
+     *
+     * @param WP_REST_Request $request Request object.
+     * @return WP_REST_Response
+     */
+    public function restore_wp_config( WP_REST_Request $request ) {
+        $result = Andw_Debug_Log_Helper::restore_wp_config();
+        return rest_ensure_response( $result );
     }
 }
