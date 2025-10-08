@@ -326,22 +326,32 @@ class Andw_Admin {
         $is_redirect_message = isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] );
 
         if ( isset( $_GET['tab'] ) ) {
-            $requested_tab = sanitize_key( $_GET['tab'] );
+            // 許可されたタブのホワイトリスト
+            $allowed_tabs = array( 'viewer', 'wp-config', 'settings' );
 
-            // リダイレクト後のメッセージ表示の場合、ナンス検証を緩和
-            if ( $is_redirect_message ) {
-                // メッセージ表示の場合、ナンス有無に関わらずタブを信頼
-                $active_tab = $requested_tab;
-            } elseif ( ! empty( $_GET['_wpnonce'] ) ) {
-                // 通常のタブ切り替えの場合、ナンス検証を実行
-                if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_switch_tab' ) ) {
+            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- tab display logic, nonce verified below for actual tab switching
+            $raw_tab = sanitize_key( wp_unslash( $_GET['tab'] ) );
+            $requested_tab = in_array( $raw_tab, $allowed_tabs, true ) ? $raw_tab : '';
+
+            // ホワイトリスト外のタブはデフォルトにフォールバック
+            if ( empty( $requested_tab ) ) {
+                $active_tab = 'viewer';
+            } else {
+                // リダイレクト後のメッセージ表示の場合、ナンス検証を緩和
+                if ( $is_redirect_message ) {
+                    // メッセージ表示の場合、ナンス有無に関わらずタブを信頼
                     $active_tab = $requested_tab;
+                } elseif ( ! empty( $_GET['_wpnonce'] ) ) {
+                    // 通常のタブ切り替えの場合、ナンス検証を実行
+                    if ( wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_switch_tab' ) ) {
+                        $active_tab = $requested_tab;
+                    } else {
+                        $active_tab = 'viewer';
+                    }
                 } else {
+                    // ナンスなしの通常リクエストはデフォルトタブ
                     $active_tab = 'viewer';
                 }
-            } else {
-                // ナンスなしの通常リクエストはデフォルトタブ
-                $active_tab = 'viewer';
             }
         } else {
             $active_tab = 'viewer';
@@ -1854,16 +1864,23 @@ class Andw_Admin {
      * @return void
      */
     private function enqueue_codemirror_for_wp_config( $hook ) {
-        // 複数の条件でwp-configタブの表示を判定
+        // 表示専用のタブ判定 - 状態変更は行わない
         $is_wp_config_tab = false;
 
+        // 許可されたタブのホワイトリスト
+        $allowed_tabs = array( 'viewer', 'wp-config', 'settings' );
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- view-only state, no DB/file writes
+        $raw_tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '';
+        $tab = in_array( $raw_tab, $allowed_tabs, true ) ? $raw_tab : '';
+
         // 1. URLパラメータによる判定
-        if ( isset( $_GET['tab'] ) && 'wp-config' === sanitize_key( $_GET['tab'] ) ) {
+        if ( 'wp-config' === $tab ) {
             $is_wp_config_tab = true;
         }
 
         // 2. デフォルトタブ判定（他のタブが指定されていない場合）
-        if ( ! isset( $_GET['tab'] ) ) {
+        if ( empty( $tab ) ) {
             // デフォルトはviewerタブなので、wp-configタブではない
             $is_wp_config_tab = false;
         }
@@ -1871,8 +1888,7 @@ class Andw_Admin {
         // 3. フォールバック: 現在の画面IDで判定
         if ( ! $is_wp_config_tab ) {
             $screen = get_current_screen();
-            $tab_param = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : '';
-            if ( $screen && 'toplevel_page_andw-debug-viewer' === $screen->id && 'wp-config' === $tab_param ) {
+            if ( $screen && 'toplevel_page_andw-debug-viewer' === $screen->id && 'wp-config' === $tab ) {
                 $is_wp_config_tab = true;
             }
         }
