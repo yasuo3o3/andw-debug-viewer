@@ -21,6 +21,13 @@ class Andw_Admin {
     private $plugin;
 
     /**
+     * WP_Filesystem instance.
+     *
+     * @var WP_Filesystem_Base|null
+     */
+    private $filesystem = null;
+
+    /**
      * Constructor.
      *
      * @param Andw_Plugin $plugin Plugin instance.
@@ -45,6 +52,28 @@ class Andw_Admin {
 
         // WP_DEBUG_LOG管理Ajax
         add_action( 'wp_ajax_andw_check_debug_log', array( $this, 'ajax_check_debug_log' ) );
+    }
+
+    /**
+     * Initialize WP_Filesystem.
+     *
+     * @return bool True on success, false on failure.
+     */
+    private function init_filesystem() {
+        if ( $this->filesystem ) {
+            return true;
+        }
+
+        global $wp_filesystem;
+
+        if ( ! $wp_filesystem ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        $this->filesystem = $wp_filesystem;
+
+        return $this->filesystem !== null;
     }
 
     /**
@@ -515,9 +544,16 @@ class Andw_Admin {
         $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
 
         // ファイル状態の確認
-        $file_exists = file_exists( $wp_config_path );
-        $file_writable = $file_exists && is_writable( $wp_config_path );
-        $backup_exists = file_exists( $backup_path );
+        if ( ! $this->init_filesystem() ) {
+            echo '<div class="notice notice-error"><p>';
+            echo esc_html__( 'ファイルシステムの初期化に失敗しました。', 'andw-debug-viewer' );
+            echo '</p></div>';
+            return;
+        }
+
+        $file_exists = $this->filesystem->exists( $wp_config_path );
+        $file_writable = $file_exists && $this->filesystem->is_writable( $wp_config_path );
+        $backup_exists = $this->filesystem->exists( $backup_path );
 
 
         if ( ! $file_exists ) {
@@ -537,7 +573,7 @@ class Andw_Admin {
 
         // バックアップ状態の表示
         if ( $backup_exists ) {
-            $backup_time = filemtime( $backup_path );
+            $backup_time = $this->filesystem->mtime( $backup_path );
             echo '<div class="notice notice-info"><p>';
             echo sprintf(
                 /* translators: %s は日付時刻（例：2024-01-01 12:00:00） */
@@ -551,8 +587,8 @@ class Andw_Admin {
         echo '<div class="andw-file-info" style="margin-bottom: 15px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">';
         echo '<h3 style="margin: 0 0 8px 0;">' . esc_html__( 'ファイル情報', 'andw-debug-viewer' ) . '</h3>';
 
-        $file_size = number_format( filesize( $wp_config_path ) );
-        $file_modified = date_i18n( 'Y-m-d H:i:s', filemtime( $wp_config_path ) );
+        $file_size = number_format( $this->filesystem->size( $wp_config_path ) );
+        $file_modified = date_i18n( 'Y-m-d H:i:s', $this->filesystem->mtime( $wp_config_path ) );
         $file_writable_text = $file_writable ? 'はい' : 'いいえ';
 
         echo '<div style="font-size: 13px; color: #666;">';
@@ -575,7 +611,13 @@ class Andw_Admin {
         echo '</div>';
 
         // エディター
-        $content = file_get_contents( $wp_config_path );
+        $content = $this->filesystem->get_contents( $wp_config_path );
+        if ( false === $content ) {
+            echo '<div class="notice notice-error"><p>';
+            echo esc_html__( 'ファイルの読み込みに失敗しました。', 'andw-debug-viewer' );
+            echo '</p></div>';
+            return;
+        }
 
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         wp_nonce_field( 'andw_wp_config_save', 'andw_wp_config_nonce' );
