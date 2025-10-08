@@ -24,7 +24,9 @@ class Andw_Debug_Log_Helper {
 
         if ( $wp_debug_log_enabled ) {
             // WP_DEBUG_LOGが有効：一行ログ出力
-            error_log( 'wp_debug_probe - ' . date( 'Y-m-d H:i:s' ) . ' - andW Debug Viewer test' );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'wp_debug_log' ) ) {
+                wp_debug_log( 'wp_debug_probe - ' . gmdate( 'Y-m-d H:i:s' ) . ' - andW Debug Viewer test' );
+            }
 
             return array(
                 'enabled' => true,

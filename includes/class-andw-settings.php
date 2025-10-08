@@ -735,9 +735,9 @@ class Andw_Settings {
         $this->debug_log( 'andW Debug: enable_wp_config_debug_logging() called' );
         $this->debug_log( 'andW Debug: wp-config path: ' . $wp_config_path );
         $this->debug_log( 'andW Debug: file exists: ' . ( file_exists( $wp_config_path ) ? 'yes' : 'no' ) );
-        $this->debug_log( 'andW Debug: writable: ' . ( is_writable( $wp_config_path ) ? 'yes' : 'no' ) );
+        $this->debug_log( 'andW Debug: writable: ' . ( wp_is_writable( $wp_config_path ) ? 'yes' : 'no' ) );
 
-        if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
+        if ( ! file_exists( $wp_config_path ) || ! wp_is_writable( $wp_config_path ) ) {
             $this->debug_log( 'andW Debug: wp-config.php not found or not writable' );
             return false;
         }

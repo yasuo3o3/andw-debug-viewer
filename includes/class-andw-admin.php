@@ -599,9 +599,11 @@ class Andw_Admin {
         );
         echo '<br>';
         echo sprintf(
-            /* translators: 1:ファイルサイズ, 2:更新日時, 3:書き込み権限(はい/いいえ) */
+            /* translators: %s はファイルサイズ */
             esc_html__( 'サイズ: %s bytes', 'andw-debug-viewer' ) . ' | ' .
+            /* translators: %s は最終更新日時 */
             esc_html__( '最終更新: %s', 'andw-debug-viewer' ) . ' | ' .
+            /* translators: %s は書き込み権限の状態（はい/いいえ） */
             esc_html__( '書き込み可能: %s', 'andw-debug-viewer' ),
             esc_html( $file_size ),
             esc_html( $file_modified ),
@@ -1646,12 +1648,17 @@ class Andw_Admin {
 
         $wp_config_path = ABSPATH . 'wp-config.php';
 
-        if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
+        if ( ! $this->init_filesystem() ) {
+            $this->redirect_with_message( 'wp-config', 'filesystem_init_failed' );
+            return;
+        }
+
+        if ( ! $this->filesystem->exists( $wp_config_path ) || ! $this->filesystem->is_writable( $wp_config_path ) ) {
             $this->redirect_with_message( 'wp-config', 'config_not_writable' );
             return;
         }
 
-        $content = isset( $_POST['wp_config_content'] ) ? wp_unslash( $_POST['wp_config_content'] ) : '';
+        $content = isset( $_POST['wp_config_content'] ) ? sanitize_textarea_field( wp_unslash( $_POST['wp_config_content'] ) ) : '';
 
         // Basic PHP syntax check
         if ( ! $this->validate_php_syntax( $content ) ) {
@@ -1729,7 +1736,12 @@ class Andw_Admin {
             return;
         }
 
-        if ( ! is_writable( $wp_config_path ) ) {
+        if ( ! $this->init_filesystem() ) {
+            $this->redirect_with_message( 'wp-config', 'filesystem_init_failed' );
+            return;
+        }
+
+        if ( ! $this->filesystem->is_writable( $wp_config_path ) ) {
             $this->redirect_with_message( 'wp-config', 'config_not_writable' );
             return;
         }
@@ -1746,7 +1758,7 @@ class Andw_Admin {
             $this->redirect_with_message( 'wp-config', 'restore_failed' );
         } else {
             // 復元成功後にバックアップファイルを削除
-            unlink( $backup_path );
+            wp_delete_file( $backup_path );
             $this->redirect_with_message( 'wp-config', 'restore_success' );
         }
     }
@@ -1776,7 +1788,7 @@ class Andw_Admin {
             if ( $temp_file ) {
                 file_put_contents( $temp_file, $code );
                 exec( "php -l $temp_file 2>&1", $output, $return_code );
-                unlink( $temp_file );
+                wp_delete_file( $temp_file );
                 return 0 === $return_code;
             }
         }
@@ -1959,7 +1971,11 @@ class Andw_Admin {
     private function enqueue_custom_codemirror() {
         // WordPress 4.9未満での独自実装（現在は空実装）
         // 必要に応じて将来的に拡張
-        error_log( 'andW Debug Viewer: WordPress version does not support wp_enqueue_code_editor' );
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            if ( function_exists( 'wp_debug_log' ) ) {
+                wp_debug_log( 'andW Debug Viewer: WordPress version does not support wp_enqueue_code_editor' );
+            }
+        }
     }
 
 }
