@@ -48,5 +48,5 @@ andW Debug Viewer は WordPress の `wp-content/debug.log` を管理画面から
 
 == Changelog ==
 
-= 0.01 =
+= 0.0.1 =
 * 初期リリース

@@ -205,7 +205,7 @@ class Andw_Plugin {
      * @return void
      */
     public function load_textdomain() {
-        // WordPress 4.6+では自動読込のため不要
+        // WordPress 4.6+ の自動翻訳読込を使用
     }
 
     /**
