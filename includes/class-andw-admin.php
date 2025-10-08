@@ -696,7 +696,8 @@ class Andw_Admin {
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
 
         // 保存成功メッセージを表示
-        if ( isset( $_GET['wp_config_message'] ) && 'save_success' === $_GET['wp_config_message'] ) {
+        $wp_config_message = isset( $_GET['wp_config_message'] ) ? sanitize_text_field( wp_unslash( $_GET['wp_config_message'] ) ) : '';
+        if ( 'save_success' === $wp_config_message ) {
             echo '<div class="notice notice-success inline" style="margin: 0 0 15px 0; padding: 8px 12px;"><p style="margin: 0;"><strong>✅ wp-config.php を保存しました。</strong> 変更が適用されました。</p></div>';
         }
 
@@ -1865,7 +1866,8 @@ class Andw_Admin {
         // 3. フォールバック: 現在の画面IDで判定
         if ( ! $is_wp_config_tab ) {
             $screen = get_current_screen();
-            if ( $screen && 'toplevel_page_andw-debug-viewer' === $screen->id && isset( $_GET['tab'] ) && 'wp-config' === $_GET['tab'] ) {
+            $tab_param = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : '';
+            if ( $screen && 'toplevel_page_andw-debug-viewer' === $screen->id && 'wp-config' === $tab_param ) {
                 $is_wp_config_tab = true;
             }
         }
