@@ -1595,11 +1595,11 @@ class Andw_Admin {
      */
     public function handle_save_wp_config() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
+            wp_die( esc_html__( '権限がありません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_save' ) ) {
-            wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
+            wp_die( esc_html__( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
         }
 
         $wp_config_path = ABSPATH . 'wp-config.php';
@@ -1635,11 +1635,11 @@ class Andw_Admin {
      */
     public function handle_backup_wp_config() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
+            wp_die( esc_html__( '権限がありません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_backup' ) ) {
-            wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
+            wp_die( esc_html__( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
         }
 
         $wp_config_path = ABSPATH . 'wp-config.php';
@@ -1672,11 +1672,11 @@ class Andw_Admin {
      */
     public function handle_restore_wp_config() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( '権限がありません。', 'andw-debug-viewer' ) );
+            wp_die( esc_html__( '権限がありません。', 'andw-debug-viewer' ) );
         }
 
         if ( ! isset( $_POST['andw_wp_config_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['andw_wp_config_nonce'] ) ), 'andw_wp_config_restore' ) ) {
-            wp_die( __( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
+            wp_die( esc_html__( 'セキュリティチェックに失敗しました。', 'andw-debug-viewer' ) );
         }
 
         $wp_config_path = ABSPATH . 'wp-config.php';
