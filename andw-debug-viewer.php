@@ -3,7 +3,7 @@
  * Plugin Name: andW Debug Viewer
  * Plugin URI: https://netservice.jp/
  * Description: 管理画面から debug.log を安全に閲覧・管理するツール。
- * Version: 0.0.1
+ * Version: 0.1.0
  * Contributors: yasuo3o3
  * Author: yasuo3o3
  * Author URI: https://yasuo-o.xyz/
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'ANDW_VERSION', '0.0.1' );
+define( 'ANDW_VERSION', '0.1.0' );
 define( 'ANDW_PLUGIN_FILE', __FILE__ );
 define( 'ANDW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'ANDW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

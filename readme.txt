@@ -4,7 +4,7 @@ Tags: debug, logging, tools, admin
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 8.1
-Stable tag: 0.0.1
+Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,6 +47,12 @@ andW Debug Viewer は WordPress の `wp-content/debug.log` を管理画面から
 1. ビューアー画面：直近行数/分数切り替えとログ表示
 
 == Changelog ==
+
+= 0.1.0 =
+* WordPress.org申請準備とレビュー対応
+* readme.txt Version統一修正
+* 配布ZIP設定の最適化
+* コメント・ドキュメント整備
 
 = 0.0.1 =
 * 初期リリース
