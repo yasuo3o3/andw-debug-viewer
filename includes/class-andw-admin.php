@@ -323,7 +323,7 @@ class Andw_Admin {
         }
 
         // タブ決定処理
-        $is_redirect_message = isset( $_GET['wp_config_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] );
+        $is_redirect_message = isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] );
 
         if ( isset( $_GET['tab'] ) ) {
             $requested_tab = sanitize_key( $_GET['tab'] );
@@ -540,6 +540,9 @@ class Andw_Admin {
     private function render_wp_config_tab( array $permissions ) {
         echo '<section class="andw-wp-config-editor">';
 
+        // Settings API によるメッセージ表示
+        settings_errors( 'andw_admin' );
+
         $wp_config_path = ABSPATH . 'wp-config.php';
         $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
 
@@ -695,11 +698,7 @@ class Andw_Admin {
 
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
 
-        // 保存成功メッセージを表示
-        $wp_config_message = isset( $_GET['wp_config_message'] ) ? sanitize_text_field( wp_unslash( $_GET['wp_config_message'] ) ) : '';
-        if ( 'save_success' === $wp_config_message ) {
-            echo '<div class="notice notice-success inline" style="margin: 0 0 15px 0; padding: 8px 12px;"><p style="margin: 0;"><strong>✅ wp-config.php を保存しました。</strong> 変更が適用されました。</p></div>';
-        }
+        // 保存成功メッセージはsettings_errors()で表示
 
         if ( $file_writable ) {
             submit_button( __( '💾 保存', 'andw-debug-viewer' ), 'primary', 'save_config', false );
@@ -1249,7 +1248,7 @@ class Andw_Admin {
      */
     private function maybe_render_notice( $active_tab = '' ) {
         // nonce検証
-        if ( ( isset( $_GET['override_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] ) || isset( $_GET['wp_config_message'] ) ) ) {
+        if ( ( isset( $_GET['override_message'] ) || isset( $_GET['temp_logging_message'] ) || isset( $_GET['andw_message'] ) ) ) {
             if ( empty( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'andw_notice_redirect' ) ) {
                 return;
             }
@@ -1263,7 +1262,6 @@ class Andw_Admin {
         $override_message = isset( $_GET['override_message'] ) ? sanitize_key( $_GET['override_message'] ) : '';
         $temp_logging_message = isset( $_GET['temp_logging_message'] ) ? sanitize_key( $_GET['temp_logging_message'] ) : '';
         $legacy_message = isset( $_GET['andw_message'] ) ? sanitize_key( $_GET['andw_message'] ) : '';
-        $wp_config_message = isset( $_GET['wp_config_message'] ) ? sanitize_key( $_GET['wp_config_message'] ) : '';
 
         $messages = array(
             'prod_enabled'         => __( 'WP_DEBUG=false 環境で60分間の一時許可を有効化しました。', 'andw-debug-viewer' ),
@@ -1274,24 +1272,12 @@ class Andw_Admin {
             'temp_logging_enabled' => __( '一時ログ出力を有効にしました（60分間）。', 'andw-debug-viewer' ),
             'temp_logging_disabled'=> __( '一時ログ出力を無効にしました。', 'andw-debug-viewer' ),
             'temp_logging_error'   => __( 'ログ出力設定の変更に失敗しました。', 'andw-debug-viewer' ),
-            'save_success'         => __( 'wp-config.php を保存しました。', 'andw-debug-viewer' ),
-            'save_failed'          => __( 'wp-config.php の保存に失敗しました。', 'andw-debug-viewer' ),
-            'syntax_error'         => __( 'PHP構文エラーがあります。保存できませんでした。', 'andw-debug-viewer' ),
-            'config_not_writable'  => __( 'wp-config.php に書き込み権限がありません。', 'andw-debug-viewer' ),
-            'config_not_found'     => __( 'wp-config.php が見つかりません。', 'andw-debug-viewer' ),
-            'backup_success'       => __( 'バックアップを作成しました。', 'andw-debug-viewer' ),
-            'backup_failed'        => __( 'バックアップの作成に失敗しました。', 'andw-debug-viewer' ),
-            'backup_read_failed'   => __( 'wp-config.php の読み取りに失敗しました。', 'andw-debug-viewer' ),
-            'backup_not_found'     => __( 'バックアップファイルが見つかりません。', 'andw-debug-viewer' ),
-            'restore_success'      => __( 'バックアップから復元しました。', 'andw-debug-viewer' ),
-            'restore_failed'       => __( '復元に失敗しました。', 'andw-debug-viewer' ),
-            'restore_read_failed'  => __( 'バックアップファイルの読み取りに失敗しました。', 'andw-debug-viewer' ),
             'test_log_success'     => __( 'テスト用ログメッセージを出力しました。ログビューアーで確認してください。', 'andw-debug-viewer' ),
             'debug_log_usage_ended'=> __( 'デバッグログの使用を終了し、関連ファイルを削除しました。', 'andw-debug-viewer' ),
             'debug_log_usage_end_error' => __( 'デバッグログ使用終了処理に失敗しました。', 'andw-debug-viewer' ),
         );
 
-        $message_key = $override_message ?: $temp_logging_message ?: $wp_config_message ?: $legacy_message;
+        $message_key = $override_message ?: $temp_logging_message ?: $legacy_message;
 
         if ( ! empty( $message_key ) && isset( $messages[ $message_key ] ) ) {
             $notice_type = 'success';
@@ -1674,7 +1660,26 @@ class Andw_Admin {
         } else {
             // 保存後にログ出力処理
             $log_result = Andw_Debug_Log_Helper::handle_wp_config_saved();
-            $this->redirect_with_message( 'wp-config', 'save_success' );
+
+            // Settings API でメッセージを追加
+            add_settings_error(
+                'andw_admin',
+                'andw_wp_config_saved',
+                esc_html__( 'wp-config.php を保存しました。変更が適用されました。', 'andw-debug-viewer' ),
+                'updated'
+            );
+
+            // PRGパターンでリダイレクト
+            $redirect_url = add_query_arg(
+                array(
+                    'page' => 'andw-debug-viewer',
+                    'tab'  => 'wp-config',
+                ),
+                admin_url( 'admin.php' )
+            );
+
+            wp_safe_redirect( $redirect_url );
+            exit;
         }
     }
 
