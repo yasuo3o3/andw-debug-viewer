@@ -540,8 +540,9 @@ class Andw_Admin {
             $backup_time = filemtime( $backup_path );
             echo '<div class="notice notice-info"><p>';
             echo sprintf(
+                /* translators: %s は日付時刻（例：2024-01-01 12:00:00） */
                 esc_html__( 'バックアップファイルが存在します（%s）', 'andw-debug-viewer' ),
-                date_i18n( 'Y-m-d H:i:s', $backup_time )
+                esc_html( date_i18n( 'Y-m-d H:i:s', $backup_time ) )
             );
             echo '</p></div>';
         }
@@ -556,17 +557,19 @@ class Andw_Admin {
 
         echo '<div style="font-size: 13px; color: #666;">';
         echo sprintf(
+            /* translators: %s はファイルパス */
             esc_html__( 'パス: %s', 'andw-debug-viewer' ),
             '<code>' . esc_html( $wp_config_path ) . '</code>'
         );
         echo '<br>';
         echo sprintf(
+            /* translators: 1:ファイルサイズ, 2:更新日時, 3:書き込み権限(はい/いいえ) */
             esc_html__( 'サイズ: %s bytes', 'andw-debug-viewer' ) . ' | ' .
             esc_html__( '最終更新: %s', 'andw-debug-viewer' ) . ' | ' .
             esc_html__( '書き込み可能: %s', 'andw-debug-viewer' ),
-            $file_size,
-            $file_modified,
-            $file_writable_text
+            esc_html( $file_size ),
+            esc_html( $file_modified ),
+            esc_html( $file_writable_text )
         );
         echo '</div>';
         echo '</div>';
@@ -612,7 +615,7 @@ class Andw_Admin {
         echo '>' . esc_textarea( $content ) . '</textarea>';
 
         // JavaScript to scroll to bottom when tab is opened
-        echo '<script>
+        wp_add_inline_script( 'wp-util', '
         (function() {
             function scrollToBottom() {
                 var editor = document.getElementById("wp-config-editor");
@@ -644,7 +647,7 @@ class Andw_Admin {
                 setTimeout(scrollToBottom, 100);
             });
         })();
-        </script>';
+        ' );
 
         echo '<div class="andw-editor-actions" style="margin: 20px 0;">';
 
