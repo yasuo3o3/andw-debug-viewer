@@ -1,0 +1,72 @@
+# Changelog
+
+All notable changes to andW Debug Viewer will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2024-10-08
+
+### Fixed
+- **Critical**: readme.txt version unification (0.01 → 0.1.0)
+- **Major**: Distribution ZIP configuration - removed assets/ from export-ignore to include necessary CSS/JS files
+- **Minor**: load_plugin_textdomain() comment clarity improvements
+- **Minor**: Enhanced wp_kses_post() usage review (determined existing esc_html() usage is sufficient)
+
+### Changed
+- **Documentation**: Comprehensive English translation of readme.txt for WordPress.org compliance
+- **Documentation**: Enhanced security feature descriptions in readme.txt
+- **Documentation**: Added bilingual support (English primary, Japanese supplementary)
+- **Build**: Optimized .gitattributes for proper WordPress.org distribution ZIP creation
+
+### Added
+- **Documentation**: Complete README.md with features, installation, usage, and security details
+- **Documentation**: Comprehensive development guidelines and WordPress.org submission status
+- **Documentation**: GitHub badges for WordPress, PHP, and license compatibility
+
+## [0.0.1] - 2024-10-02
+
+### Added
+- Initial release
+- Debug log viewer with line/minute-based filtering
+- REST API integration for asynchronous log operations
+- Production environment safety with temporary override functionality
+- Multisite support with network admin priority
+- Comprehensive security implementation (nonce, capability checks, input/output sanitization)
+- WordPress 6.0+ and PHP 8.1+ compatibility
+- Complete internationalization support
+
+---
+
+**日本語変更履歴**
+
+## [0.1.0] - 2024-10-08
+
+### 修正
+- **重要**: readme.txt バージョン統一修正 (0.01 → 0.1.0)
+- **重要**: 配布ZIP設定修正 - 必要なCSS/JSファイルを含めるためassetsディレクトリを配布対象に変更
+- **軽微**: load_plugin_textdomain() コメント明確化
+- **軽微**: wp_kses_post() 使用状況確認（既存のesc_html()使用で十分と判定）
+
+### 変更
+- **ドキュメント**: WordPress.org準拠のためreadme.txt完全英語化
+- **ドキュメント**: セキュリティ機能説明の強化
+- **ドキュメント**: 二言語対応追加（英語メイン、日本語補足）
+- **ビルド**: WordPress.org配布ZIP作成のための.gitattributes最適化
+
+### 追加
+- **ドキュメント**: 機能・インストール・使用方法・セキュリティ詳細を含む包括的README.md
+- **ドキュメント**: 開発ガイドラインとWordPress.org申請状況の包括的説明
+- **ドキュメント**: WordPress・PHP・ライセンス互換性のGitHubバッジ
+
+## [0.0.1] - 2024-10-02
+
+### 追加
+- 初期リリース
+- 行数/分数ベースフィルタリング付きデバッグログビューアー
+- 非同期ログ操作のためのREST API統合
+- 一時オーバーライド機能付き本番環境安全性
+- ネットワーク管理者優先のマルチサイト対応
+- 包括的セキュリティ実装（nonce、権限チェック、入出力サニタイズ）
+- WordPress 6.0+およびPHP 8.1+互換性
+- 完全な国際化対応
