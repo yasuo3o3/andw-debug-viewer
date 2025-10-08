@@ -16,6 +16,18 @@ class Andw_Settings {
     const OPTION_NAME = 'andw_settings';
 
     /**
+     * Safe debug logging function.
+     *
+     * @param string $message Debug message.
+     * @return void
+     */
+    private function debug_log( $message ) {
+        if ( function_exists( 'wp_debug_log' ) ) {
+            wp_debug_log( $message );
+        }
+    }
+
+    /**
      * Default option values.
      *
      * @return array
@@ -268,17 +280,17 @@ class Andw_Settings {
      * @return bool Success status.
      */
     public function enable_temp_logging() {
-        error_log( 'andW Debug: enable_temp_logging() called' );
+        $this->debug_log( 'andW Debug: enable_temp_logging() called' );
 
         // WP_DEBUGが有効な場合は一時ログを有効化しない
         $wp_debug_enabled = defined( 'WP_DEBUG' ) && WP_DEBUG;
         $wp_debug_log_enabled = defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG;
 
-        error_log( 'andW Debug: WP_DEBUG=' . ( $wp_debug_enabled ? 'true' : 'false' ) );
-        error_log( 'andW Debug: WP_DEBUG_LOG=' . ( $wp_debug_log_enabled ? 'true' : 'false' ) );
+        $this->debug_log( 'andW Debug: WP_DEBUG=' . ( $wp_debug_enabled ? 'true' : 'false' ) );
+        $this->debug_log( 'andW Debug: WP_DEBUG_LOG=' . ( $wp_debug_log_enabled ? 'true' : 'false' ) );
 
         if ( $wp_debug_enabled && $wp_debug_log_enabled ) {
-            error_log( 'andW Debug: skipping temp logging because WP_DEBUG and WP_DEBUG_LOG are both enabled' );
+            $this->debug_log( 'andW Debug: skipping temp logging because WP_DEBUG and WP_DEBUG_LOG are both enabled' );
             return false;
         }
 
@@ -304,19 +316,19 @@ class Andw_Settings {
         // 既存設定を確認
         $existing_settings = get_option( self::OPTION_NAME, array() );
 
-        error_log( 'andW Debug: attempting to save settings via update_option' );
+        $this->debug_log( 'andW Debug: attempting to save settings via update_option' );
 
         // まず update_option を試行
         $updated = update_option( self::OPTION_NAME, $settings, false );
 
-        error_log( 'andW Debug: update_option result: ' . ( $updated ? 'true' : 'false' ) );
+        $this->debug_log( 'andW Debug: update_option result: ' . ( $updated ? 'true' : 'false' ) );
 
         // 保存後の設定を確認
         $after_save = get_option( self::OPTION_NAME, array() );
 
         // update_option が false を返した場合でも、値が変わっていない場合は true とみなす場合がある
         if ( ! $updated ) {
-            error_log( 'andW Debug: update_option returned false, checking if values were actually saved' );
+            $this->debug_log( 'andW Debug: update_option returned false, checking if values were actually saved' );
             // 現在保存されている値を確認
             $current_saved = get_option( self::OPTION_NAME, array() );
 
@@ -332,7 +344,7 @@ class Andw_Settings {
         // 処理結果を記録
 
         if ( $updated ) {
-            error_log( 'andW Debug: settings saved successfully, proceeding with temp logging setup' );
+            $this->debug_log( 'andW Debug: settings saved successfully, proceeding with temp logging setup' );
 
             // セッションファイルを作成
             $this->create_temp_session_file();
@@ -340,9 +352,9 @@ class Andw_Settings {
             $this->apply_temp_logging_settings();
 
             // Try to enable wp-config.php modification for proper error logging
-            error_log( 'andW Debug: calling enable_wp_config_debug_logging()' );
+            $this->debug_log( 'andW Debug: calling enable_wp_config_debug_logging()' );
             $wp_config_enabled = $this->enable_wp_config_debug_logging();
-            error_log( 'andW Debug: enable_wp_config_debug_logging() returned: ' . ( $wp_config_enabled ? 'true' : 'false' ) );
+            $this->debug_log( 'andW Debug: enable_wp_config_debug_logging() returned: ' . ( $wp_config_enabled ? 'true' : 'false' ) );
 
             // ログ有効化の確認メッセージをデバッグログファイルに出力
             $log_file = trailingslashit( WP_CONTENT_DIR ) . 'debug.log';
@@ -601,7 +613,7 @@ class Andw_Settings {
         // ログ出力を完全に抑制（WP_DEBUG_LOG=true環境での無限ループ防止）
         // static $last_session_state = null;
         // if ( $last_session_state !== $is_active ) {
-        //     error_log( 'andW Debug Viewer: セッション状態変化: ' . ( $is_active ? 'アクティブ' : '期限切れ' ) );
+        //     $this->debug_log( 'andW Debug Viewer: セッション状態変化: ' . ( $is_active ? 'アクティブ' : '期限切れ' ) );
         //     $last_session_state = $is_active;
         // }
 
@@ -720,40 +732,40 @@ class Andw_Settings {
         $wp_config_path = ABSPATH . 'wp-config.php';
 
         // Debug logging
-        error_log( 'andW Debug: enable_wp_config_debug_logging() called' );
-        error_log( 'andW Debug: wp-config path: ' . $wp_config_path );
-        error_log( 'andW Debug: file exists: ' . ( file_exists( $wp_config_path ) ? 'yes' : 'no' ) );
-        error_log( 'andW Debug: writable: ' . ( is_writable( $wp_config_path ) ? 'yes' : 'no' ) );
+        $this->debug_log( 'andW Debug: enable_wp_config_debug_logging() called' );
+        $this->debug_log( 'andW Debug: wp-config path: ' . $wp_config_path );
+        $this->debug_log( 'andW Debug: file exists: ' . ( file_exists( $wp_config_path ) ? 'yes' : 'no' ) );
+        $this->debug_log( 'andW Debug: writable: ' . ( is_writable( $wp_config_path ) ? 'yes' : 'no' ) );
 
         if ( ! file_exists( $wp_config_path ) || ! is_writable( $wp_config_path ) ) {
-            error_log( 'andW Debug: wp-config.php not found or not writable' );
+            $this->debug_log( 'andW Debug: wp-config.php not found or not writable' );
             return false;
         }
 
         // Check if already modified
         if ( $this->is_wp_config_debug_modified() ) {
-            error_log( 'andW Debug: wp-config already modified' );
+            $this->debug_log( 'andW Debug: wp-config already modified' );
             return true; // Already modified
         }
 
         // Read current wp-config.php
         $wp_config_content = file_get_contents( $wp_config_path );
         if ( false === $wp_config_content ) {
-            error_log( 'andW Debug: failed to read wp-config.php' );
+            $this->debug_log( 'andW Debug: failed to read wp-config.php' );
             return false;
         }
 
-        error_log( 'andW Debug: wp-config content read, length: ' . strlen( $wp_config_content ) );
+        $this->debug_log( 'andW Debug: wp-config content read, length: ' . strlen( $wp_config_content ) );
 
         // Create backup
         $backup_path = WP_CONTENT_DIR . '/andw-wp-config-backup.php';
         $backup_result = file_put_contents( $backup_path, $wp_config_content );
         if ( false === $backup_result ) {
-            error_log( 'andW Debug: failed to create backup at: ' . $backup_path );
+            $this->debug_log( 'andW Debug: failed to create backup at: ' . $backup_path );
             return false;
         }
 
-        error_log( 'andW Debug: backup created successfully' );
+        $this->debug_log( 'andW Debug: backup created successfully' );
 
         // Find the WP_DEBUG section and modify it
         $debug_section_pattern = '/if\s*\(\s*!\s*defined\s*\(\s*[\'"]WP_DEBUG[\'"]\s*\)\s*\)\s*\{\s*define\s*\(\s*[\'"]WP_DEBUG[\'"]\s*,\s*false\s*\)\s*;\s*\}/';
@@ -773,7 +785,7 @@ class Andw_Settings {
         $modified_content = preg_replace( $debug_section_pattern, $new_debug_section, $wp_config_content );
 
         if ( $modified_content === $wp_config_content ) {
-            error_log( 'andW Debug: WP_DEBUG pattern did not match, trying WP_ENVIRONMENT_TYPE' );
+            $this->debug_log( 'andW Debug: WP_DEBUG pattern did not match, trying WP_ENVIRONMENT_TYPE' );
             // If pattern didn't match, try to insert before WP_ENVIRONMENT_TYPE
             $env_pattern = '/define\s*\(\s*[\'"]WP_ENVIRONMENT_TYPE[\'"]/';
             if ( preg_match( $env_pattern, $wp_config_content ) ) {
@@ -782,17 +794,17 @@ class Andw_Settings {
                     $new_debug_section . "\n\ndefine( 'WP_ENVIRONMENT_TYPE'",
                     $wp_config_content
                 );
-                error_log( 'andW Debug: inserted before WP_ENVIRONMENT_TYPE' );
+                $this->debug_log( 'andW Debug: inserted before WP_ENVIRONMENT_TYPE' );
             } else {
-                error_log( 'andW Debug: WP_ENVIRONMENT_TYPE pattern did not match' );
+                $this->debug_log( 'andW Debug: WP_ENVIRONMENT_TYPE pattern did not match' );
             }
         } else {
-            error_log( 'andW Debug: WP_DEBUG pattern matched successfully' );
+            $this->debug_log( 'andW Debug: WP_DEBUG pattern matched successfully' );
         }
 
         // If still no modification, insert before "That's all, stop editing!"
         if ( $modified_content === $wp_config_content ) {
-            error_log( 'andW Debug: trying stop editing pattern' );
+            $this->debug_log( 'andW Debug: trying stop editing pattern' );
             $stop_pattern = '/\/\*\s*That\'s all, stop editing!/';
             if ( preg_match( $stop_pattern, $wp_config_content ) ) {
                 $modified_content = preg_replace(
@@ -800,32 +812,32 @@ class Andw_Settings {
                     $new_debug_section . "\n\n/* That's all, stop editing!",
                     $wp_config_content
                 );
-                error_log( 'andW Debug: inserted before stop editing comment' );
+                $this->debug_log( 'andW Debug: inserted before stop editing comment' );
             } else {
-                error_log( 'andW Debug: stop editing pattern did not match' );
+                $this->debug_log( 'andW Debug: stop editing pattern did not match' );
             }
         }
 
         // Verify modification was made
         if ( $modified_content === $wp_config_content ) {
-            error_log( 'andW Debug: no modification was made, all patterns failed' );
+            $this->debug_log( 'andW Debug: no modification was made, all patterns failed' );
             // Clean up backup
             wp_delete_file( $backup_path );
             return false;
         }
 
-        error_log( 'andW Debug: modification successful, writing to wp-config.php' );
+        $this->debug_log( 'andW Debug: modification successful, writing to wp-config.php' );
 
         // Write modified wp-config.php
         $write_result = file_put_contents( $wp_config_path, $modified_content );
         if ( false === $write_result ) {
-            error_log( 'andW Debug: failed to write modified wp-config.php' );
+            $this->debug_log( 'andW Debug: failed to write modified wp-config.php' );
             // Clean up backup
             wp_delete_file( $backup_path );
             return false;
         }
 
-        error_log( 'andW Debug: wp-config.php written successfully' );
+        $this->debug_log( 'andW Debug: wp-config.php written successfully' );
 
         // Store modification info
         $modification_info = array(
@@ -836,7 +848,7 @@ class Andw_Settings {
         );
 
         $option_result = update_option( 'andw_wp_config_debug_mod', $modification_info, false );
-        error_log( 'andW Debug: option update result: ' . ( $option_result ? 'success' : 'failed' ) );
+        $this->debug_log( 'andW Debug: option update result: ' . ( $option_result ? 'success' : 'failed' ) );
 
         return true;
     }
