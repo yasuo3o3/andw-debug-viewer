@@ -1,0 +1,63 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      ASSET_PREFIX: andw-debug-viewer
+      ZIP_SRC: "."          # 必要なら dist/ に変更
+      BUILD_CMD: ""         # 例: "npm ci && npm run build"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build
+        if: env.BUILD_CMD != ''
+        run: $BUILD_CMD
+
+      - name: Read version from manifest.json
+        id: v
+        run: |
+          VER=$(jq -r '.version' manifest.json)
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+          echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Make zip
+        run: |
+          ZIP="${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip"
+          echo "zip_name=$ZIP" >> $GITHUB_OUTPUT
+          (shopt -s dotglob && zip -r "$ZIP" "$ZIP_SRC" -x ".git/*" ".github/*" "node_modules/*")
+        shell: bash
+
+      - name: SHA256
+        run: sha256sum "${{ steps.make_zip.outputs.zip_name || env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip" > "${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip.sha256"
+        id: sum
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip
+            ${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Move/Create tag "latest"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ref = 'tags/latest';
+            const sha = context.sha;
+            try {
+              await github.rest.git.updateRef({ owner: context.repo.owner, repo: context.repo.repo, ref, sha, force: true });
+            } catch (e) {
+              await github.rest.git.createRef({ owner: context.repo.owner, repo: context.repo.repo, ref: `refs/${ref}`, sha });
+            }
