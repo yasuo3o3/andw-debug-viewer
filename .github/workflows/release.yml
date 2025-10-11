@@ -11,9 +11,7 @@ jobs:
     permissions:
       contents: write
     env:
-      ASSET_PREFIX: andw-debug-viewer
-      ZIP_SRC: "."          # 必要なら dist/ に変更
-      BUILD_CMD: ""         # 例: "npm ci && npm run build"
+      BUILD_CMD: ""   # 例: "npm ci && npm run build"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,30 +21,50 @@ jobs:
         if: env.BUILD_CMD != ''
         run: $BUILD_CMD
 
+      - name: Determine ASSET_PREFIX automatically
+        id: prefix
+        run: |
+          if [ -f manifest.json ]; then
+            NAME=$(jq -r '.name' manifest.json | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9_-]//g')
+          else
+            NAME=$(basename "$GITHUB_REPOSITORY")
+          fi
+          echo "ASSET_PREFIX=$NAME" >> $GITHUB_ENV
+          echo "asset_prefix=$NAME" >> $GITHUB_OUTPUT
+
       - name: Read version from manifest.json
-        id: v
+        id: ver
         run: |
           VER=$(jq -r '.version' manifest.json)
-          echo "ver=$VER" >> $GITHUB_OUTPUT
-          echo "date=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+          DATE=$(date +%Y%m%d)
+          echo "VER=$VER" >> $GITHUB_ENV
+          echo "DATE=$DATE" >> $GITHUB_ENV
+          echo "ZIP_NAME=${ASSET_PREFIX}_v${VER}_${DATE}.zip" >> $GITHUB_ENV
 
-      - name: Make zip
+      - name: Stage files under fixed top-level folder
         run: |
-          ZIP="${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip"
-          echo "zip_name=$ZIP" >> $GITHUB_OUTPUT
-          (shopt -s dotglob && zip -r "$ZIP" "$ZIP_SRC" -x ".git/*" ".github/*" "node_modules/*")
-        shell: bash
+          rm -rf "$ASSET_PREFIX"
+          mkdir "$ASSET_PREFIX"
+          rsync -a ./ "$ASSET_PREFIX"/ \
+            --exclude ".git/" \
+            --exclude ".github/" \
+            --exclude "node_modules/" \
+            --exclude "*.zip"
+
+      - name: Make zip with fixed top-level folder
+        run: |
+          zip -r "$ZIP_NAME" "$ASSET_PREFIX"
 
       - name: SHA256
-        run: sha256sum "${{ steps.make_zip.outputs.zip_name || env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip" > "${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip.sha256"
-        id: sum
+        run: |
+          sha256sum "$ZIP_NAME" > "${ZIP_NAME}.sha256"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            ${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip
-            ${{ env.ASSET_PREFIX }}_v${{ steps.v.outputs.ver }}_${{ steps.v.outputs.date }}.zip.sha256
+            ${{ env.ZIP_NAME }}
+            ${{ env.ZIP_NAME }}.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
