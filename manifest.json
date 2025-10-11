@@ -1,0 +1,7 @@
+{
+  "name": "andw-debug-viewer",
+  "version": "0.0.1",
+  "description": "Debug viewer plugin for analyzing logs and runtime data",
+  "repository": "https://github.com/yasuo3o3/andw-debug-viewer",
+  "license": "GPL-2.0"
+}
